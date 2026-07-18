@@ -1,0 +1,609 @@
+<div class="app-shell" [class.rtl]="isArabic()" [attr.dir]="pageDirection()" [attr.lang]="language()">
+  <aside class="sidebar" aria-label="ConstructERP modules">
+    <div class="brand">
+      <div class="brand-logo">
+        <img src="finesco-logo.svg" alt="Finesco International Co. logo" />
+      </div>
+      <div>
+        <strong>ConstructERP</strong>
+        <span>{{ t('phase') }}</span>
+      </div>
+    </div>
+
+    <nav class="module-nav">
+      @for (group of localizedModuleGroups(); track group.label) {
+        <section class="nav-group">
+          <h2>{{ group.label }}</h2>
+          @for (module of group.modules; track module.id) {
+            <button
+              type="button"
+              [class.active]="activeModule() === module.id"
+              (click)="setModule(module.id)"
+            >
+              @switch (module.icon) {
+                @case ('gauge') {
+                  <svg lucideGauge size="18" aria-hidden="true"></svg>
+                }
+                @case ('boxes') {
+                  <svg lucideBoxes size="18" aria-hidden="true"></svg>
+                }
+                @case ('request') {
+                  <svg lucideClipboardList size="18" aria-hidden="true"></svg>
+                }
+                @case ('project') {
+                  <svg lucideBuilding2 size="18" aria-hidden="true"></svg>
+                }
+                @case ('warehouse') {
+                  <svg lucideWarehouse size="18" aria-hidden="true"></svg>
+                }
+                @case ('truck') {
+                  <svg lucideTruck size="18" aria-hidden="true"></svg>
+                }
+                @case ('clipboard') {
+                  <svg lucideClipboardCheck size="18" aria-hidden="true"></svg>
+                }
+                @case ('money') {
+                  <svg lucideCircleDollarSign size="18" aria-hidden="true"></svg>
+                }
+                @default {
+                  <svg lucideChartNoAxesCombined size="18" aria-hidden="true"></svg>
+                }
+              }
+              <span>
+                <strong>{{ module.label }}</strong>
+                <small>{{ module.caption }}</small>
+              </span>
+            </button>
+          }
+        </section>
+      }
+    </nav>
+
+    <div class="prototype-note">
+      <strong>{{ t('mockTitle') }}</strong>
+      <span>{{ t('mockNote') }}</span>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <header class="topbar">
+      <button class="icon-button mobile-only" type="button" [attr.aria-label]="t('menu')">
+        <svg lucideMenu size="20" aria-hidden="true"></svg>
+      </button>
+      <div class="search-box">
+        <svg lucideSearch size="18" aria-hidden="true"></svg>
+        <span>{{ t('search') }}</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-button lang-toggle" type="button" (click)="toggleLanguage()">
+          {{ t('langToggle') }}
+        </button>
+        <button class="icon-button" type="button" [attr.aria-label]="t('notifications')">
+          <svg lucideBell size="19" aria-hidden="true"></svg>
+        </button>
+        <button class="primary-action" type="button" (click)="setModule('requests')">
+          <svg lucidePlus size="18" aria-hidden="true"></svg>
+          {{ t('newRequest') }}
+        </button>
+      </div>
+    </header>
+
+    <section class="page-heading">
+      <div>
+        <span>{{ t('eyebrow') }}</span>
+        <h1>{{ t('heading') }}</h1>
+      </div>
+      <button class="secondary-action" type="button">
+        <svg lucideDownload size="18" aria-hidden="true"></svg>
+        {{ t('export') }}
+      </button>
+    </section>
+
+    <section class="kpi-grid" aria-label="Dashboard metrics">
+      <article>
+        <span>{{ t('totalEquipment') }}</span>
+        <strong>{{ equipment.length }}</strong>
+        <small>{{ t('totalEquipmentNote') }}</small>
+      </article>
+      <article>
+        <span>{{ t('externalRentals') }}</span>
+        <strong>{{ totals().rented }}</strong>
+        <small>{{ t('externalRentalsNote') }}</small>
+      </article>
+      <article>
+        <span>{{ t('dailySpend') }}</span>
+        <strong>{{ totals().dailySpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+        <small>{{ t('dailySpendNote') }}</small>
+      </article>
+      <article>
+        <span>{{ t('avgUtilization') }}</span>
+        <strong>{{ totals().avgUtilization }}%</strong>
+        <small>{{ totals().idle }} {{ t('idleNeedsReview') }}</small>
+      </article>
+    </section>
+
+    @switch (activeModule()) {
+      @case ('dashboard') {
+        <section class="content-grid dashboard-grid">
+          <article class="panel wide-panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('fleetVisibility') }}</span>
+                <h2>{{ t('utilizationByAsset') }}</h2>
+              </div>
+              <svg lucideChartNoAxesCombined size="21" aria-hidden="true"></svg>
+            </div>
+
+            <div class="utilization-list">
+              @for (item of equipment; track item.id) {
+                <button type="button" (click)="selectEquipment(item.id)">
+                  <span>
+                    <strong>{{ text(item.name) }}</strong>
+                    <small>{{ text(item.project) }} · {{ text(item.ownership) }}</small>
+                  </span>
+                  <div class="bar" aria-hidden="true">
+                    <i [style.width.%]="item.utilization"></i>
+                  </div>
+                  <b>{{ item.utilization }}%</b>
+                </button>
+              }
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('attentionQueue') }}</span>
+                <h2>{{ t('nextActions') }}</h2>
+              </div>
+              <svg lucideCalendarClock size="21" aria-hidden="true"></svg>
+            </div>
+            <div class="action-list">
+              @for (item of equipment.slice(0, 4); track item.id) {
+                <button type="button" (click)="selectEquipment(item.id)">
+                  <strong>{{ item.id }}</strong>
+                  <span>{{ text(item.nextAction) }}</span>
+                  <svg lucideChevronRight size="16" aria-hidden="true"></svg>
+                </button>
+              }
+            </div>
+          </article>
+        </section>
+      }
+
+      @case ('requests') {
+        <section class="content-grid request-grid">
+          <article class="panel wide-panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('requestFlow') }}</span>
+                <h2>{{ t('requestFlowTitle') }}</h2>
+              </div>
+              <svg lucideClipboardList size="21" aria-hidden="true"></svg>
+            </div>
+
+            <div class="process-steps" aria-label="Equipment request workflow">
+              <article>
+                <svg lucideClipboardList size="20" aria-hidden="true"></svg>
+                <strong>{{ t('createRequest') }}</strong>
+                <span>{{ text('Request') }}</span>
+              </article>
+              <article>
+                <svg lucideListChecks size="20" aria-hidden="true"></svg>
+                <strong>{{ t('approveRequest') }}</strong>
+                <span>{{ text('Approval') }}</span>
+              </article>
+              <article>
+                <svg lucidePackageCheck size="20" aria-hidden="true"></svg>
+                <strong>{{ t('receiveEquipment') }}</strong>
+                <span>{{ text('Receiving') }}</span>
+              </article>
+              <article>
+                <svg lucideClipboardCheck size="20" aria-hidden="true"></svg>
+                <strong>{{ t('inspectBeforeUse') }}</strong>
+                <span>{{ text('Inspection') }}</span>
+              </article>
+            </div>
+
+            <div class="request-list">
+              @for (request of equipmentRequests; track request.id) {
+                <article>
+                  <div class="request-summary">
+                    <span>
+                      <strong>{{ request.id }} · {{ text(request.equipment) }}</strong>
+                      <small>{{ text(request.project) }} · {{ text(request.ownership) }}</small>
+                    </span>
+                    <b class="status-pill" [ngClass]="statusClass(request.status)">
+                      {{ text(request.status) }}
+                    </b>
+                  </div>
+
+                  <div class="request-meta">
+                    <span>
+                      <small>{{ t('currentStage') }}</small>
+                      <strong>{{ text(request.stage) }}</strong>
+                    </span>
+                    <span>
+                      <small>{{ t('requestedBy') }}</small>
+                      <strong>{{ request.requestedBy }}</strong>
+                    </span>
+                    <span>
+                      <small>{{ t('requiredDate') }}</small>
+                      <strong>{{ request.requiredDate }}</strong>
+                    </span>
+                    <span>
+                      <small>{{ t('returnDate') }}</small>
+                      <strong>{{ request.returnDate }}</strong>
+                    </span>
+                    <span>
+                      <small>{{ t('estimatedCost') }}</small>
+                      <strong>{{ request.estimatedCost | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                    </span>
+                  </div>
+
+                  <dl class="request-details">
+                    <div>
+                      <dt>{{ t('location') }}</dt>
+                      <dd>{{ text(request.location) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ t('purpose') }}</dt>
+                      <dd>{{ text(request.purpose) }}</dd>
+                    </div>
+                  </dl>
+                </article>
+              }
+            </div>
+          </article>
+
+          <article class="panel checks-panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('processSteps') }}</span>
+                <h2>{{ t('beforeRequestChecks') }}</h2>
+              </div>
+              <svg lucideListChecks size="21" aria-hidden="true"></svg>
+            </div>
+
+            <div class="check-list">
+              @for (check of equipmentRequests[0].checks; track check.label) {
+                <span [class.failed]="!check.passed">
+                  <i>{{ check.passed ? '✓' : '!' }}</i>
+                  {{ text(check.label) }}
+                </span>
+              }
+            </div>
+
+            <div class="panel-heading compact-heading">
+              <div>
+                <span>{{ t('processSteps') }}</span>
+                <h2>{{ t('beforeReceivingChecks') }}</h2>
+              </div>
+              <svg lucidePackageCheck size="21" aria-hidden="true"></svg>
+            </div>
+
+            <div class="check-list">
+              @for (check of equipmentRequests[0].receivingChecks; track check.label) {
+                <span [class.failed]="!check.passed">
+                  <i>{{ check.passed ? '✓' : '!' }}</i>
+                  {{ text(check.label) }}
+                </span>
+              }
+            </div>
+
+            <p class="muted request-note">{{ t('requestFlowNote') }}</p>
+          </article>
+        </section>
+      }
+
+      @case ('projects') {
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <span>{{ t('projectsOverview') }}</span>
+              <h2>{{ t('projectsTitle') }}</h2>
+            </div>
+            <svg lucideBuilding2 size="21" aria-hidden="true"></svg>
+          </div>
+
+          <div class="project-grid">
+            @for (project of projects; track project.code) {
+              <article>
+                <div class="project-card-heading">
+                  <span>
+                    <strong>{{ text(project.name) }}</strong>
+                    <small>{{ t('projectCode') }} · {{ project.code }}</small>
+                  </span>
+                  <b class="status-pill" [ngClass]="statusClass(project.status)">{{ text(project.status) }}</b>
+                </div>
+
+                <div class="project-facts">
+                  <span>
+                    <small>{{ t('client') }}</small>
+                    <strong>{{ text(project.client) }}</strong>
+                  </span>
+                  <span>
+                    <small>{{ t('manager') }}</small>
+                    <strong>{{ project.manager }}</strong>
+                  </span>
+                  <span>
+                    <small>{{ t('location') }}</small>
+                    <strong>{{ text(project.location) }}</strong>
+                  </span>
+                  <span>
+                    <small>{{ t('budget') }}</small>
+                    <strong>{{ project.budget | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                  </span>
+                </div>
+
+                <div class="project-activity">
+                  <span>
+                    <small>{{ t('equipmentAssigned') }}</small>
+                    <strong>{{ projectEquipmentCount(project.name) }}</strong>
+                  </span>
+                  <span>
+                    <small>{{ t('requestsLinked') }}</small>
+                    <strong>{{ projectRequestCount(project.name) }}</strong>
+                  </span>
+                  <span>
+                    <small>{{ t('inspectionsLinked') }}</small>
+                    <strong>{{ projectInspectionCount(project.name) }}</strong>
+                  </span>
+                </div>
+
+                <div class="project-costs">
+                  <div>
+                    <span>{{ t('equipmentSpend') }}</span>
+                    <strong>{{ project.equipmentSpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                  </div>
+                  <div>
+                    <span>{{ t('transportSpend') }}</span>
+                    <strong>{{ project.transportSpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                  </div>
+                  <div>
+                    <span>{{ t('extraSpend') }}</span>
+                    <strong>{{ project.extraSpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                  </div>
+                </div>
+
+                <div class="project-progress">
+                  <span>
+                    {{ t('costProgress') }} ·
+                    {{ projectTotalSpend(project) | currency: 'USD' : 'symbol' : '1.0-0' }}
+                  </span>
+                  <div class="progress" aria-hidden="true">
+                    <i [style.width.%]="project.progress"></i>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @case ('equipment') {
+        <section class="content-grid">
+          <article class="panel wide-panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('assetRegister') }}</span>
+                <h2>{{ t('ownedAndRented') }}</h2>
+              </div>
+              <svg lucideBoxes size="21" aria-hidden="true"></svg>
+            </div>
+            <div class="table">
+              @for (item of equipment; track item.id) {
+                <button
+                  class="table-row"
+                  type="button"
+                  [class.selected]="selectedEquipment() === item.id"
+                  (click)="selectEquipment(item.id)"
+                >
+                  <span>
+                    <strong>{{ text(item.name) }}</strong>
+                    <small>{{ item.id }} · {{ text(item.type) }}</small>
+                  </span>
+                  <span>{{ text(item.project) }}</span>
+                  <span>{{ text(item.ownership) }}</span>
+                  <span class="status-pill" [ngClass]="statusClass(item.status)">{{ text(item.status) }}</span>
+                </button>
+              }
+            </div>
+          </article>
+
+          <article class="panel detail-panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('assetDetail') }}</span>
+                <h2>{{ text(selectedAsset().name) }}</h2>
+              </div>
+              <svg lucideWrench size="21" aria-hidden="true"></svg>
+            </div>
+            <dl>
+              <div>
+                <dt>{{ t('project') }}</dt>
+                <dd>{{ text(selectedAsset().project) }}</dd>
+              </div>
+              <div>
+                <dt>{{ t('ownership') }}</dt>
+                <dd>{{ text(selectedAsset().ownership) }}</dd>
+              </div>
+              <div>
+                <dt>{{ t('dailyCost') }}</dt>
+                <dd>{{ selectedAsset().dailyCost | currency: 'USD' : 'symbol' : '1.0-0' }}</dd>
+              </div>
+              <div>
+                <dt>{{ t('nextAction') }}</dt>
+                <dd>{{ text(selectedAsset().nextAction) }}</dd>
+              </div>
+            </dl>
+          </article>
+        </section>
+      }
+
+      @case ('rentals') {
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <span>{{ t('vendorRentals') }}</span>
+              <h2>{{ t('activeCommitments') }}</h2>
+            </div>
+            <svg lucideWarehouse size="21" aria-hidden="true"></svg>
+          </div>
+          <div class="table">
+            @for (rental of rentals; track rental.asset) {
+              <div class="table-row static-row">
+                <span>
+                  <strong>{{ text(rental.asset) }}</strong>
+                  <small>{{ text(rental.vendor) }}</small>
+                </span>
+                <span>{{ text(rental.project) }}</span>
+                <span>{{ rental.returnDate }}</span>
+                <span>{{ rental.amount | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                <span class="status-pill" [ngClass]="statusClass(rental.status)">{{ text(rental.status) }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      @case ('transport') {
+        <section class="content-grid">
+          <article class="panel wide-panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('transportation') }}</span>
+                <h2>{{ t('transportPlanning') }}</h2>
+              </div>
+              <svg lucideTruck size="21" aria-hidden="true"></svg>
+            </div>
+            <div class="route-board">
+              <div>
+                <svg lucideMapPinned size="20" aria-hidden="true"></svg>
+                <strong>{{ text('Yard A to Downtown Tower') }}</strong>
+                <span>{{ text('Lowbed trailer · $2,400 · ETA 16:30') }}</span>
+              </div>
+              <div>
+                <svg lucideMapPinned size="20" aria-hidden="true"></svg>
+                <strong>{{ text('Airport Expansion to Vendor Yard') }}</strong>
+                <span>{{ text('Return move · $3,150 · Scheduled Jul 24') }}</span>
+              </div>
+              <div>
+                <svg lucideMapPinned size="20" aria-hidden="true"></svg>
+                <strong>{{ text('Harbor Yard to Service Center') }}</strong>
+                <span>{{ text('Inspection transfer · $1,100 · Awaiting approval') }}</span>
+              </div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('costSplit') }}</span>
+                <h2>{{ t('transportShare') }}</h2>
+              </div>
+              <svg lucideBadgeDollarSign size="21" aria-hidden="true"></svg>
+            </div>
+            <div class="donut" [attr.aria-label]="t('transportDistribution')">
+              <span>24%</span>
+            </div>
+            <p class="muted">{{ t('transportNote') }}</p>
+          </article>
+        </section>
+      }
+
+      @case ('inspections') {
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <span>{{ t('inspectionRecords') }}</span>
+              <h2>{{ t('inspectionTitle') }}</h2>
+            </div>
+            <svg lucideClipboardCheck size="21" aria-hidden="true"></svg>
+          </div>
+          <div class="inspection-grid">
+            @for (inspection of inspections; track inspection.asset) {
+              <article>
+                <div class="media-strip">
+                  <svg lucideCamera size="20" aria-hidden="true"></svg>
+                  <svg lucideSignature size="20" aria-hidden="true"></svg>
+                </div>
+                <strong>{{ text(inspection.asset) }}</strong>
+                <span>{{ text(inspection.project) }}</span>
+                <small>{{ text(inspection.media) }} · {{ inspection.inspector }}</small>
+                <b class="status-pill" [ngClass]="statusClass(inspection.status)">{{ text(inspection.status) }}</b>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @case ('costs') {
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <span>{{ t('projectCosts') }}</span>
+              <h2>{{ t('costTitle') }}</h2>
+            </div>
+            <svg lucideCircleDollarSign size="21" aria-hidden="true"></svg>
+          </div>
+          <div class="cost-list">
+            @for (cost of projectCosts; track cost.project) {
+              <article>
+                <div>
+                  <strong>{{ text(cost.project) }}</strong>
+                  <span>
+                    {{ text('Equipment') }} {{ cost.equipment | currency: 'USD' : 'symbol' : '1.0-0' }} ·
+                    {{ text('Transport') }}
+                    {{ cost.transport | currency: 'USD' : 'symbol' : '1.0-0' }} · {{ text('Extras') }}
+                    {{ cost.extras | currency: 'USD' : 'symbol' : '1.0-0' }}
+                  </span>
+                </div>
+                <div class="progress" aria-hidden="true">
+                  <i [style.width.%]="cost.progress"></i>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @default {
+        <section class="content-grid">
+          <article class="panel wide-panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('reports') }}</span>
+                <h2>{{ t('reportPack') }}</h2>
+              </div>
+              <svg lucideFileText size="21" aria-hidden="true"></svg>
+            </div>
+            <div class="report-list">
+              <button type="button">
+                <svg lucideChartNoAxesCombined size="19" aria-hidden="true"></svg>
+                {{ t('utilizationReport') }}
+              </button>
+              <button type="button">
+                <svg lucideCircleDollarSign size="19" aria-hidden="true"></svg>
+                {{ t('rentalReport') }}
+              </button>
+              <button type="button">
+                <svg lucideClipboardCheck size="19" aria-hidden="true"></svg>
+                {{ t('inspectionReport') }}
+              </button>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <span>{{ t('prototypeOutput') }}</span>
+                <h2>{{ t('readyReview') }}</h2>
+              </div>
+              <svg lucideFileText size="21" aria-hidden="true"></svg>
+            </div>
+            <p class="muted">{{ t('reportNote') }}</p>
+          </article>
+        </section>
+      }
+    }
+  </main>
+</div>
