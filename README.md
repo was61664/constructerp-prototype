@@ -1,13 +1,16 @@
 # ConstructerpPrototype
 
+Public site: https://was61664.github.io/constructerp-prototype/
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.32.
 
 ## Development server
 
-To start a local development server, run:
+Install dependencies and start a local development server:
 
 ```bash
-ng serve
+npm ci
+npm start
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
@@ -33,6 +36,12 @@ To build the project run:
 ```bash
 ng build
 ```
+
+## Publishing
+
+Pushes to `main` automatically build and deploy the app with GitHub Pages using
+`.github/workflows/deploy-pages.yml`. In the GitHub repository settings, set **Pages > Build and
+deployment > Source** to **GitHub Actions** once if Pages has not previously been enabled.
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
