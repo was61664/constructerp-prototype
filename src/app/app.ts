@@ -373,11 +373,11 @@ const displayText: Record<Language, Record<string, string>> = {
     '5 photos': '5 صور',
     '6 photos, signature draft': '6 صور، مسودة توقيع',
     'Yard A to Downtown Tower': 'الساحة أ إلى برج وسط المدينة',
-    'Lowbed trailer · $2,400 · ETA 16:30': 'مقطورة لوبد · 2,400$ · الوصول 16:30',
+    'Lowbed trailer · KWD 2,400 · ETA 16:30': 'مقطورة لوبد · 2,400 د.ك · الوصول 16:30',
     'Airport Expansion to Vendor Yard': 'توسعة المطار إلى ساحة المورد',
-    'Return move · $3,150 · Scheduled Jul 24': 'رحلة رجوع · 3,150$ · مجدولة 24 يوليو',
+    'Return move · KWD 3,150 · Scheduled Jul 24': 'رحلة رجوع · 3,150 د.ك · مجدولة 24 يوليو',
     'Harbor Yard to Service Center': 'ساحة الميناء إلى مركز الخدمة',
-    'Inspection transfer · $1,100 · Awaiting approval': 'نقل للتفتيش · 1,100$ · بانتظار الموافقة',
+    'Inspection transfer · KWD 1,100 · Awaiting approval': 'نقل للتفتيش · 1,100 د.ك · بانتظار الموافقة',
     'Foundation excavation support': 'دعم أعمال حفر الأساسات',
     'Night shift lighting': 'إضاءة الوردية الليلية',
     'East Gate, Zone 4': 'البوابة الشرقية، المنطقة 4',
@@ -449,6 +449,7 @@ const displayText: Record<Language, Record<string, string>> = {
 export class App {
   private readonly document = inject(DOCUMENT);
 
+  protected readonly defaultCurrencyCode = 'KWD';
   protected readonly language = signal<Language>('en');
   protected readonly activeModule = signal<ModuleId>('dashboard');
   protected readonly selectedEquipment = signal('EQ-104');

@@ -112,7 +112,7 @@
       </article>
       <article>
         <span>{{ t('dailySpend') }}</span>
-        <strong>{{ totals().dailySpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+        <strong>{{ totals().dailySpend | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</strong>
         <small>{{ t('dailySpendNote') }}</small>
       </article>
       <article>
@@ -237,7 +237,7 @@
                     </span>
                     <span>
                       <small>{{ t('estimatedCost') }}</small>
-                      <strong>{{ request.estimatedCost | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                      <strong>{{ request.estimatedCost | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</strong>
                     </span>
                   </div>
 
@@ -332,7 +332,7 @@
                   </span>
                   <span>
                     <small>{{ t('budget') }}</small>
-                    <strong>{{ project.budget | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                    <strong>{{ project.budget | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</strong>
                   </span>
                 </div>
 
@@ -354,22 +354,22 @@
                 <div class="project-costs">
                   <div>
                     <span>{{ t('equipmentSpend') }}</span>
-                    <strong>{{ project.equipmentSpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                    <strong>{{ project.equipmentSpend | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</strong>
                   </div>
                   <div>
                     <span>{{ t('transportSpend') }}</span>
-                    <strong>{{ project.transportSpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                    <strong>{{ project.transportSpend | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</strong>
                   </div>
                   <div>
                     <span>{{ t('extraSpend') }}</span>
-                    <strong>{{ project.extraSpend | currency: 'USD' : 'symbol' : '1.0-0' }}</strong>
+                    <strong>{{ project.extraSpend | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</strong>
                   </div>
                 </div>
 
                 <div class="project-progress">
                   <span>
                     {{ t('costProgress') }} ·
-                    {{ projectTotalSpend(project) | currency: 'USD' : 'symbol' : '1.0-0' }}
+                    {{ projectTotalSpend(project) | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}
                   </span>
                   <div class="progress" aria-hidden="true">
                     <i [style.width.%]="project.progress"></i>
@@ -430,7 +430,7 @@
               </div>
               <div>
                 <dt>{{ t('dailyCost') }}</dt>
-                <dd>{{ selectedAsset().dailyCost | currency: 'USD' : 'symbol' : '1.0-0' }}</dd>
+                <dd>{{ selectedAsset().dailyCost | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</dd>
               </div>
               <div>
                 <dt>{{ t('nextAction') }}</dt>
@@ -459,7 +459,7 @@
                 </span>
                 <span>{{ text(rental.project) }}</span>
                 <span>{{ rental.returnDate }}</span>
-                <span>{{ rental.amount | currency: 'USD' : 'symbol' : '1.0-0' }}</span>
+                <span>{{ rental.amount | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}</span>
                 <span class="status-pill" [ngClass]="statusClass(rental.status)">{{ text(rental.status) }}</span>
               </div>
             }
@@ -481,17 +481,17 @@
               <div>
                 <svg lucideMapPinned size="20" aria-hidden="true"></svg>
                 <strong>{{ text('Yard A to Downtown Tower') }}</strong>
-                <span>{{ text('Lowbed trailer · $2,400 · ETA 16:30') }}</span>
+                <span>{{ text('Lowbed trailer · KWD 2,400 · ETA 16:30') }}</span>
               </div>
               <div>
                 <svg lucideMapPinned size="20" aria-hidden="true"></svg>
                 <strong>{{ text('Airport Expansion to Vendor Yard') }}</strong>
-                <span>{{ text('Return move · $3,150 · Scheduled Jul 24') }}</span>
+                <span>{{ text('Return move · KWD 3,150 · Scheduled Jul 24') }}</span>
               </div>
               <div>
                 <svg lucideMapPinned size="20" aria-hidden="true"></svg>
                 <strong>{{ text('Harbor Yard to Service Center') }}</strong>
-                <span>{{ text('Inspection transfer · $1,100 · Awaiting approval') }}</span>
+                <span>{{ text('Inspection transfer · KWD 1,100 · Awaiting approval') }}</span>
               </div>
             </div>
           </article>
@@ -552,10 +552,10 @@
                 <div>
                   <strong>{{ text(cost.project) }}</strong>
                   <span>
-                    {{ text('Equipment') }} {{ cost.equipment | currency: 'USD' : 'symbol' : '1.0-0' }} ·
+                    {{ text('Equipment') }} {{ cost.equipment | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }} ·
                     {{ text('Transport') }}
-                    {{ cost.transport | currency: 'USD' : 'symbol' : '1.0-0' }} · {{ text('Extras') }}
-                    {{ cost.extras | currency: 'USD' : 'symbol' : '1.0-0' }}
+                    {{ cost.transport | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }} · {{ text('Extras') }}
+                    {{ cost.extras | currency: defaultCurrencyCode : 'symbol' : '1.0-3' }}
                   </span>
                 </div>
                 <div class="progress" aria-hidden="true">

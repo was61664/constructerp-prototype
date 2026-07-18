@@ -2,6 +2,8 @@
   <title id="title">Finesco International Co. logo</title>
   <desc id="desc">Circular construction company logo in navy, blue, red, and white.</desc>
   <defs>
+    <path id="arabic-name-arc" d="M91 253a165 165 0 0 1 330 0"/>
+    <path id="english-name-arc" d="M421 259a165 165 0 0 1-330 0"/>
     <style>
       .navy{fill:#243986}
       .blue{fill:#5b96d1}
@@ -21,5 +23,10 @@
   <path class="red" d="M181 131h199l9 9-16 19H255v154h-17V159h-57v-28Zm19 16h54l-1-10-53 10Zm63 0h91l8-9-99-1v10Z"/>
   <path class="red" d="M370 159h11v124c0 18-14 28-28 24l5-11c8 1 12-5 12-14V159Z"/>
   <path class="red" d="m352 165 33 4-22 22 18 5-33 35 11-26-19-6 12-34Zm10 12-6 15 17 5-8 14 7-8-18-6 16-17-8-3Z"/>
-  <text x="256" y="456" text-anchor="middle" class="navy" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="700" letter-spacing="1">FINESCO INTERNATIONAL CO.</text>
+  <text class="navy" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="700" letter-spacing="1">
+    <textPath href="#english-name-arc" startOffset="50%" text-anchor="middle">FINESCO INTERNATIONAL CO.</textPath>
+  </text>
+  <text class="navy" font-family="'Segoe UI', Tahoma, Arial, sans-serif" font-size="39" font-weight="800">
+    <textPath href="#arabic-name-arc" startOffset="50%" text-anchor="middle" direction="rtl" unicode-bidi="bidi-override">شركة فينيسكو العالمية</textPath>
+  </text>
 </svg>
