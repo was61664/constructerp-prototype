@@ -369,11 +369,14 @@ const displayText: Record<Language, Record<string, string>> = {
     '5 photos': '5 صور',
     '6 photos, signature draft': '6 صور، مسودة توقيع',
     'Yard A to Downtown Tower': 'الساحة أ إلى برج وسط المدينة',
-    'Lowbed trailer · KWD 2,400 · ETA 16:30': 'مقطورة لوبد · 2,400 د.ك · الوصول 16:30',
+    'Lowbed trailer': 'مقطورة لوبد',
+    'ETA 16:30': 'الوصول 16:30',
     'Airport Expansion to Vendor Yard': 'توسعة المطار إلى ساحة المورد',
-    'Return move · KWD 3,150 · Scheduled Jul 24': 'رحلة رجوع · 3,150 د.ك · مجدولة 24 يوليو',
+    'Return move': 'رحلة رجوع',
+    'Scheduled Jul 24': 'مجدولة 24 يوليو',
     'Harbor Yard to Service Center': 'ساحة الميناء إلى مركز الخدمة',
-    'Inspection transfer · KWD 1,100 · Awaiting approval': 'نقل للتفتيش · 1,100 د.ك · بانتظار الموافقة',
+    'Inspection transfer': 'نقل للتفتيش',
+    'Awaiting approval': 'بانتظار الموافقة',
     'Foundation excavation support': 'دعم أعمال حفر الأساسات',
     'Night shift lighting': 'إضاءة الوردية الليلية',
     'East Gate, Zone 4': 'البوابة الشرقية، المنطقة 4',
@@ -445,7 +448,6 @@ const displayText: Record<Language, Record<string, string>> = {
 export class App {
   private readonly document = inject(DOCUMENT);
 
-  protected readonly defaultCurrencyCode = 'KWD';
   protected readonly language = signal<Language>('en');
   protected readonly activeModule = signal<ModuleId>('dashboard');
   protected readonly selectedEquipment = signal('EQ-104');
@@ -703,6 +705,7 @@ export class App {
 
   protected readonly isArabic = computed(() => this.language() === 'ar');
   protected readonly pageDirection = computed(() => (this.isArabic() ? 'rtl' : 'ltr'));
+  protected readonly currencyLocale = computed(() => (this.isArabic() ? 'ar-KW' : 'en-KW'));
 
   protected readonly totals = computed(() => {
     const rented = this.equipment.filter((item) => item.ownership === 'External Rental').length;
@@ -761,6 +764,16 @@ export class App {
 
   protected t(key: keyof (typeof translations)['en']): string {
     return translations[this.language()][key];
+  }
+
+  protected formatMoney(value: number): string {
+    return new Intl.NumberFormat(this.currencyLocale(), {
+      style: 'currency',
+      currency: 'KWD',
+      currencyDisplay: 'symbol',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3,
+    }).format(value);
   }
 
   protected text(value: string): string {
