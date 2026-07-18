@@ -869,6 +869,7 @@ button {
   .workspace,
   .module-nav button,
   .nav-group h2,
+  .kpi-grid article,
   .table-row,
   .utilization-list button,
   .action-list button,
@@ -910,7 +911,24 @@ button {
   .secondary-action,
   .panel-heading,
   .route-board div,
-  .report-list button,
+  .report-list button {
+    direction: rtl;
+  }
+
+  .search-box span {
+    text-align: right;
+  }
+
+  .search-box,
+  .primary-action,
+  .secondary-action,
+  .panel-heading,
+  .route-board div,
+  .report-list button {
+    flex-direction: row;
+  }
+
+  .topbar-actions,
   .media-strip {
     flex-direction: row-reverse;
   }
@@ -944,15 +962,34 @@ button {
   .request-details,
   .project-facts,
   .project-activity,
-  .project-costs {
+  .project-costs,
+  .detail-panel dl,
+  .table-row,
+  .route-board,
+  .cost-list,
+  .report-list {
     direction: rtl;
   }
 
   .action-list button {
-    grid-template-columns: 18px minmax(0, 1fr) 58px;
+    grid-template-columns: 58px minmax(0, 1fr) 18px;
 
     strong {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    span {
+      grid-column: 2;
+      grid-row: 1;
+      direction: rtl;
+      text-align: right;
+    }
+
+    svg {
       grid-column: 3;
+      grid-row: 1;
+      transform: rotate(180deg);
     }
   }
 
