@@ -873,9 +873,12 @@ button {
   .utilization-list button,
   .action-list button,
   .report-list button,
+  .process-steps article,
   .request-list,
   .check-list,
-  .project-grid {
+  .project-grid,
+  .inspection-grid,
+  .cost-list article {
     text-align: right;
   }
 
@@ -910,6 +913,39 @@ button {
   .report-list button,
   .media-strip {
     flex-direction: row-reverse;
+  }
+
+  .panel-heading > div,
+  .request-summary > span,
+  .project-card-heading > span,
+  .inspection-grid article,
+  .cost-list article > div:first-child {
+    direction: rtl;
+    text-align: right;
+  }
+
+  .request-summary,
+  .project-card-heading {
+    grid-template-columns: auto minmax(0, 1fr);
+
+    > span {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    > .status-pill {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+    }
+  }
+
+  .request-meta,
+  .request-details,
+  .project-facts,
+  .project-activity,
+  .project-costs {
+    direction: rtl;
   }
 
   .action-list button {
@@ -1018,6 +1054,20 @@ button {
     .bar {
       grid-column: 1 / -1;
       order: 3;
+    }
+  }
+
+  .rtl {
+    .request-summary,
+    .project-card-heading {
+      > span,
+      > .status-pill {
+        grid-column: 1;
+      }
+
+      > .status-pill {
+        grid-row: 2;
+      }
     }
   }
 }
