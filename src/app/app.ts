@@ -107,8 +107,6 @@ type NavGroupId = 'overview' | 'mainData' | 'projectOperations' | 'analytics';
 const translations = {
   en: {
     phase: 'Phase 1 Prototype',
-    mockTitle: 'Mock data only',
-    mockNote: 'Validates flows before ASP.NET Core and SQL Server implementation.',
     search: 'Search equipment, projects, vendors, inspections',
     notifications: 'Notifications',
     newRequest: 'New Request',
@@ -195,8 +193,6 @@ const translations = {
   },
   ar: {
     phase: 'النموذج الأولي - المرحلة الأولى',
-    mockTitle: 'بيانات تجريبية فقط',
-    mockNote: 'لاختبار سير العمل قبل تنفيذ ASP.NET Core و SQL Server.',
     search: 'ابحث عن المعدات أو المشاريع أو الموردين أو التفتيشات',
     notifications: 'الإشعارات',
     newRequest: 'طلب جديد',

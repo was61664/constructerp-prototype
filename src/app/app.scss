@@ -181,25 +181,6 @@ button {
   }
 }
 
-.prototype-note {
-  margin-top: auto;
-  padding: 14px;
-  color: #ffffff;
-  background: var(--finesco-red);
-  border-radius: 8px;
-
-  strong,
-  span {
-    display: block;
-  }
-
-  span {
-    margin-top: 6px;
-    font-size: 0.78rem;
-    line-height: 1.45;
-  }
-}
-
 .workspace {
   min-width: 0;
   padding: 22px;
@@ -967,10 +948,6 @@ button {
 
   .module-nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .prototype-note {
-    margin-top: 0;
   }
 
   .content-grid,
