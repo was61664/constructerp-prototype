@@ -104,6 +104,19 @@ type ProjectRecord = {
 
 type NavGroupId = 'overview' | 'mainData' | 'projectOperations' | 'analytics';
 
+const arabicDigitMap: Record<string, string> = {
+  '0': '٠',
+  '1': '١',
+  '2': '٢',
+  '3': '٣',
+  '4': '٤',
+  '5': '٥',
+  '6': '٦',
+  '7': '٧',
+  '8': '٨',
+  '9': '٩',
+};
+
 const translations = {
   en: {
     phase: 'Phase 1 Prototype',
@@ -706,6 +719,7 @@ export class App {
   protected readonly isArabic = computed(() => this.language() === 'ar');
   protected readonly pageDirection = computed(() => (this.isArabic() ? 'rtl' : 'ltr'));
   protected readonly currencyLocale = computed(() => (this.isArabic() ? 'ar-KW' : 'en-KW'));
+  protected readonly numberLocale = computed(() => (this.isArabic() ? 'ar-KW' : 'en-US'));
 
   protected readonly totals = computed(() => {
     const rented = this.equipment.filter((item) => item.ownership === 'External Rental').length;
@@ -763,7 +777,13 @@ export class App {
   }
 
   protected t(key: keyof (typeof translations)['en']): string {
-    return translations[this.language()][key];
+    return this.localizeDigits(translations[this.language()][key]);
+  }
+
+  protected formatInteger(value: number): string {
+    return new Intl.NumberFormat(this.numberLocale(), {
+      maximumFractionDigits: 0,
+    }).format(value);
   }
 
   protected formatMoney(value: number): string {
@@ -776,7 +796,33 @@ export class App {
     }).format(value);
   }
 
+  protected formatPercent(value: number): string {
+    return `${this.formatInteger(value)}%`;
+  }
+
+  protected formatDateLabel(value: string): string {
+    if (!this.isArabic()) {
+      return value;
+    }
+
+    const match = /^(Jul)\s+(\d{1,2})$/.exec(value);
+
+    if (!match) {
+      return this.localizeDigits(value);
+    }
+
+    return `${this.localizeDigits(match[2])} يوليو`;
+  }
+
   protected text(value: string): string {
-    return displayText[this.language()][value] ?? value;
+    return this.localizeDigits(displayText[this.language()][value] ?? value);
+  }
+
+  private localizeDigits(value: string): string {
+    if (!this.isArabic()) {
+      return value;
+    }
+
+    return value.replace(/\d/g, (digit) => arabicDigitMap[digit]);
   }
 }

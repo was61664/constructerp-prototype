@@ -97,12 +97,12 @@
     <section class="kpi-grid" aria-label="Dashboard metrics">
       <article>
         <span>{{ t('totalEquipment') }}</span>
-        <strong>{{ equipment.length }}</strong>
+        <strong>{{ formatInteger(equipment.length) }}</strong>
         <small>{{ t('totalEquipmentNote') }}</small>
       </article>
       <article>
         <span>{{ t('externalRentals') }}</span>
-        <strong>{{ totals().rented }}</strong>
+        <strong>{{ formatInteger(totals().rented) }}</strong>
         <small>{{ t('externalRentalsNote') }}</small>
       </article>
       <article>
@@ -112,8 +112,8 @@
       </article>
       <article>
         <span>{{ t('avgUtilization') }}</span>
-        <strong>{{ totals().avgUtilization }}%</strong>
-        <small>{{ totals().idle }} {{ t('idleNeedsReview') }}</small>
+        <strong>{{ formatPercent(totals().avgUtilization) }}</strong>
+        <small>{{ formatInteger(totals().idle) }} {{ t('idleNeedsReview') }}</small>
       </article>
     </section>
 
@@ -139,7 +139,7 @@
                   <div class="bar" aria-hidden="true">
                     <i [style.width.%]="item.utilization"></i>
                   </div>
-                  <b>{{ item.utilization }}%</b>
+                  <b>{{ formatPercent(item.utilization) }}</b>
                 </button>
               }
             </div>
@@ -224,11 +224,11 @@
                     </span>
                     <span>
                       <small>{{ t('requiredDate') }}</small>
-                      <strong>{{ request.requiredDate }}</strong>
+                      <strong>{{ formatDateLabel(request.requiredDate) }}</strong>
                     </span>
                     <span>
                       <small>{{ t('returnDate') }}</small>
-                      <strong>{{ request.returnDate }}</strong>
+                      <strong>{{ formatDateLabel(request.returnDate) }}</strong>
                     </span>
                     <span>
                       <small>{{ t('estimatedCost') }}</small>
@@ -334,15 +334,15 @@
                 <div class="project-activity">
                   <span>
                     <small>{{ t('equipmentAssigned') }}</small>
-                    <strong>{{ projectEquipmentCount(project.name) }}</strong>
+                    <strong>{{ formatInteger(projectEquipmentCount(project.name)) }}</strong>
                   </span>
                   <span>
                     <small>{{ t('requestsLinked') }}</small>
-                    <strong>{{ projectRequestCount(project.name) }}</strong>
+                    <strong>{{ formatInteger(projectRequestCount(project.name)) }}</strong>
                   </span>
                   <span>
                     <small>{{ t('inspectionsLinked') }}</small>
-                    <strong>{{ projectInspectionCount(project.name) }}</strong>
+                    <strong>{{ formatInteger(projectInspectionCount(project.name)) }}</strong>
                   </span>
                 </div>
 
@@ -453,7 +453,7 @@
                   <small>{{ text(rental.vendor) }}</small>
                 </span>
                 <span>{{ text(rental.project) }}</span>
-                <span>{{ rental.returnDate }}</span>
+                <span>{{ formatDateLabel(rental.returnDate) }}</span>
                 <span>{{ formatMoney(rental.amount) }}</span>
                 <span class="status-pill" [ngClass]="statusClass(rental.status)">{{ text(rental.status) }}</span>
               </div>
@@ -499,7 +499,7 @@
               <svg lucideBadgeDollarSign size="21" aria-hidden="true"></svg>
             </div>
             <div class="donut" [attr.aria-label]="t('transportDistribution')">
-              <span>24%</span>
+              <span>{{ formatPercent(24) }}</span>
             </div>
             <p class="muted">{{ t('transportNote') }}</p>
           </article>
