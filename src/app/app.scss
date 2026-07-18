@@ -263,6 +263,22 @@ button {
   background: #ffffff;
 }
 
+.danger-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  color: #a8232d;
+  font: inherit;
+  font-weight: 800;
+  white-space: nowrap;
+  background: #fff0f2;
+  border: 1px solid #f2b7bd;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .page-heading {
   justify-content: space-between;
   gap: 16px;
@@ -339,6 +355,64 @@ button {
   background: #ffffff;
   border: 1px solid #d7e3f3;
   border-radius: 8px;
+}
+
+.crud-panel {
+  margin-bottom: 14px;
+  border-color: #8fbae4;
+}
+
+.crud-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+
+  label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  span {
+    color: #6b7898;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  input,
+  select {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 10px;
+    color: #25304f;
+    font: inherit;
+    background: #f8fbff;
+    border: 1px solid #d7e3f3;
+    border-radius: 8px;
+  }
+
+  input[readonly] {
+    color: #65728b;
+    background: #eef4fb;
+  }
+}
+
+.wide-field,
+.crud-form-actions {
+  grid-column: span 2;
+}
+
+.crud-form-actions,
+.crud-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crud-actions {
+  justify-content: flex-end;
 }
 
 .panel-heading {
@@ -929,6 +1003,8 @@ button {
   }
 
   .topbar-actions,
+  .crud-form-actions,
+  .crud-actions,
   .media-strip {
     flex-direction: row-reverse;
   }
@@ -963,6 +1039,7 @@ button {
   .project-facts,
   .project-activity,
   .project-costs,
+  .crud-form,
   .detail-panel dl,
   .table-row,
   .route-board,
@@ -1007,6 +1084,12 @@ button {
       grid-row: 1;
     }
   }
+
+  .crud-form input,
+  .crud-form select {
+    direction: rtl;
+    text-align: right;
+  }
 }
 
 @media (max-width: 1080px) {
@@ -1046,6 +1129,7 @@ button {
   .content-grid,
   .kpi-grid,
   .inspection-grid,
+  .crud-form,
   .cost-list article,
   .process-steps,
   .request-meta,
@@ -1057,6 +1141,11 @@ button {
   .project-activity,
   .project-costs {
     grid-template-columns: 1fr;
+  }
+
+  .wide-field,
+  .crud-form-actions {
+    grid-column: 1;
   }
 
   .page-heading {

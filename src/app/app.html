@@ -76,7 +76,7 @@
         <button class="icon-button" type="button" [attr.aria-label]="t('notifications')">
           <svg lucideBell size="19" aria-hidden="true"></svg>
         </button>
-        <button class="primary-action" type="button" (click)="setModule('requests')">
+        <button class="primary-action" type="button" (click)="openCreateRequest()">
           <svg lucidePlus size="18" aria-hidden="true"></svg>
           {{ t('newRequest') }}
         </button>
@@ -93,6 +93,213 @@
         {{ t('export') }}
       </button>
     </section>
+
+    @if (editorEntity()) {
+      <section class="panel crud-panel">
+        <div class="panel-heading">
+          <div>
+            <span>{{ t('crudHint') }}</span>
+            <h2>
+              @switch (editorEntity()) {
+                @case ('project') {
+                  {{ editorMode() === 'create' ? t('createProject') : t('editProject') }}
+                }
+                @case ('equipment') {
+                  {{ editorMode() === 'create' ? t('createEquipment') : t('editEquipment') }}
+                }
+                @case ('request') {
+                  {{ editorMode() === 'create' ? t('createEquipmentRequest') : t('editEquipmentRequest') }}
+                }
+              }
+            </h2>
+          </div>
+          <button class="icon-button" type="button" [attr.aria-label]="t('cancel')" (click)="closeEditor()">×</button>
+        </div>
+
+        @switch (editorEntity()) {
+          @case ('project') {
+            <form class="crud-form" (ngSubmit)="saveProject()">
+              <label>
+                <span>{{ t('name') }}</span>
+                <input name="projectName" [(ngModel)]="projectDraft.name" required />
+              </label>
+              <label>
+                <span>{{ t('code') }}</span>
+                <input name="projectCode" [(ngModel)]="projectDraft.code" required [readonly]="editorMode() === 'edit'" />
+              </label>
+              <label>
+                <span>{{ t('client') }}</span>
+                <input name="projectClient" [(ngModel)]="projectDraft.client" />
+              </label>
+              <label>
+                <span>{{ t('manager') }}</span>
+                <input name="projectManager" [(ngModel)]="projectDraft.manager" />
+              </label>
+              <label>
+                <span>{{ t('location') }}</span>
+                <input name="projectLocation" [(ngModel)]="projectDraft.location" />
+              </label>
+              <label>
+                <span>{{ t('status') }}</span>
+                <select name="projectStatus" [(ngModel)]="projectDraft.status">
+                  <option value="Active">{{ text('Active') }}</option>
+                  <option value="At Risk">{{ text('At Risk') }}</option>
+                  <option value="Closing">{{ text('Closing') }}</option>
+                </select>
+              </label>
+              <label>
+                <span>{{ t('budget') }}</span>
+                <input name="projectBudget" type="number" min="0" [(ngModel)]="projectDraft.budget" />
+              </label>
+              <label>
+                <span>{{ t('equipmentSpend') }}</span>
+                <input name="projectEquipmentSpend" type="number" min="0" [(ngModel)]="projectDraft.equipmentSpend" />
+              </label>
+              <label>
+                <span>{{ t('transportSpend') }}</span>
+                <input name="projectTransportSpend" type="number" min="0" [(ngModel)]="projectDraft.transportSpend" />
+              </label>
+              <label>
+                <span>{{ t('extraSpend') }}</span>
+                <input name="projectExtraSpend" type="number" min="0" [(ngModel)]="projectDraft.extraSpend" />
+              </label>
+              <label>
+                <span>{{ t('costProgress') }}</span>
+                <input name="projectProgress" type="number" min="0" max="100" [(ngModel)]="projectDraft.progress" />
+              </label>
+              <div class="crud-form-actions">
+                <button class="primary-action" type="submit">{{ t('save') }}</button>
+                <button class="secondary-action" type="button" (click)="closeEditor()">{{ t('cancel') }}</button>
+              </div>
+            </form>
+          }
+          @case ('equipment') {
+            <form class="crud-form" (ngSubmit)="saveEquipment()">
+              <label>
+                <span>{{ t('name') }}</span>
+                <input name="equipmentName" [(ngModel)]="equipmentDraft.name" required />
+              </label>
+              <label>
+                <span>ID</span>
+                <input name="equipmentId" [(ngModel)]="equipmentDraft.id" required [readonly]="editorMode() === 'edit'" />
+              </label>
+              <label>
+                <span>{{ t('type') }}</span>
+                <input name="equipmentType" [(ngModel)]="equipmentDraft.type" />
+              </label>
+              <label>
+                <span>{{ t('project') }}</span>
+                <input name="equipmentProject" [(ngModel)]="equipmentDraft.project" />
+              </label>
+              <label>
+                <span>{{ t('ownership') }}</span>
+                <select name="equipmentOwnership" [(ngModel)]="equipmentDraft.ownership">
+                  <option value="Owned">{{ text('Owned') }}</option>
+                  <option value="External Rental">{{ text('External Rental') }}</option>
+                </select>
+              </label>
+              <label>
+                <span>{{ t('status') }}</span>
+                <select name="equipmentStatus" [(ngModel)]="equipmentDraft.status">
+                  <option value="Working">{{ text('Working') }}</option>
+                  <option value="Idle">{{ text('Idle') }}</option>
+                  <option value="In Transit">{{ text('In Transit') }}</option>
+                  <option value="Inspection Due">{{ text('Inspection Due') }}</option>
+                  <option value="Return Scheduled">{{ text('Return Scheduled') }}</option>
+                </select>
+              </label>
+              <label>
+                <span>{{ t('utilization') }}</span>
+                <input name="equipmentUtilization" type="number" min="0" max="100" [(ngModel)]="equipmentDraft.utilization" />
+              </label>
+              <label>
+                <span>{{ t('dailyCost') }}</span>
+                <input name="equipmentDailyCost" type="number" min="0" [(ngModel)]="equipmentDraft.dailyCost" />
+              </label>
+              <label class="wide-field">
+                <span>{{ t('nextAction') }}</span>
+                <input name="equipmentNextAction" [(ngModel)]="equipmentDraft.nextAction" />
+              </label>
+              <div class="crud-form-actions">
+                <button class="primary-action" type="submit">{{ t('save') }}</button>
+                <button class="secondary-action" type="button" (click)="closeEditor()">{{ t('cancel') }}</button>
+              </div>
+            </form>
+          }
+          @case ('request') {
+            <form class="crud-form" (ngSubmit)="saveRequest()">
+              <label>
+                <span>ID</span>
+                <input name="requestId" [(ngModel)]="requestDraft.id" required [readonly]="editorMode() === 'edit'" />
+              </label>
+              <label>
+                <span>{{ t('equipment') }}</span>
+                <input name="requestEquipment" [(ngModel)]="requestDraft.equipment" required />
+              </label>
+              <label>
+                <span>{{ t('project') }}</span>
+                <input name="requestProject" [(ngModel)]="requestDraft.project" />
+              </label>
+              <label>
+                <span>{{ t('ownership') }}</span>
+                <select name="requestOwnership" [(ngModel)]="requestDraft.ownership">
+                  <option value="Owned">{{ text('Owned') }}</option>
+                  <option value="External Rental">{{ text('External Rental') }}</option>
+                </select>
+              </label>
+              <label>
+                <span>{{ t('requestedBy') }}</span>
+                <input name="requestRequestedBy" [(ngModel)]="requestDraft.requestedBy" />
+              </label>
+              <label>
+                <span>{{ t('requiredDate') }}</span>
+                <input name="requestRequiredDate" [(ngModel)]="requestDraft.requiredDate" />
+              </label>
+              <label>
+                <span>{{ t('returnDate') }}</span>
+                <input name="requestReturnDate" [(ngModel)]="requestDraft.returnDate" />
+              </label>
+              <label>
+                <span>{{ t('status') }}</span>
+                <select name="requestStatus" [(ngModel)]="requestDraft.status">
+                  <option value="Draft">{{ text('Draft') }}</option>
+                  <option value="Submitted">{{ text('Submitted') }}</option>
+                  <option value="Approved">{{ text('Approved') }}</option>
+                  <option value="Received">{{ text('Received') }}</option>
+                  <option value="Inspection Pending">{{ text('Inspection Pending') }}</option>
+                  <option value="Ready to Use">{{ text('Ready to Use') }}</option>
+                </select>
+              </label>
+              <label>
+                <span>{{ t('currentStage') }}</span>
+                <select name="requestStage" [(ngModel)]="requestDraft.stage">
+                  <option value="Request">{{ text('Request') }}</option>
+                  <option value="Approval">{{ text('Approval') }}</option>
+                  <option value="Receiving">{{ text('Receiving') }}</option>
+                  <option value="Inspection">{{ text('Inspection') }}</option>
+                </select>
+              </label>
+              <label>
+                <span>{{ t('estimatedCost') }}</span>
+                <input name="requestEstimatedCost" type="number" min="0" [(ngModel)]="requestDraft.estimatedCost" />
+              </label>
+              <label>
+                <span>{{ t('location') }}</span>
+                <input name="requestLocation" [(ngModel)]="requestDraft.location" />
+              </label>
+              <label class="wide-field">
+                <span>{{ t('purpose') }}</span>
+                <input name="requestPurpose" [(ngModel)]="requestDraft.purpose" />
+              </label>
+              <div class="crud-form-actions">
+                <button class="primary-action" type="submit">{{ t('save') }}</button>
+                <button class="secondary-action" type="button" (click)="closeEditor()">{{ t('cancel') }}</button>
+              </div>
+            </form>
+          }
+        }
+      </section>
+    }
 
     <section class="kpi-grid" aria-label="Dashboard metrics">
       <article>
@@ -174,7 +381,10 @@
                 <span>{{ t('requestFlow') }}</span>
                 <h2>{{ t('requestFlowTitle') }}</h2>
               </div>
-              <svg lucideClipboardList size="21" aria-hidden="true"></svg>
+              <button class="secondary-action" type="button" (click)="openCreateRequest()">
+                <svg lucidePlus size="18" aria-hidden="true"></svg>
+                {{ t('newRequest') }}
+              </button>
             </div>
 
             <div class="process-steps" aria-label="Equipment request workflow">
@@ -246,6 +456,15 @@
                       <dd>{{ text(request.purpose) }}</dd>
                     </div>
                   </dl>
+
+                  <div class="crud-actions">
+                    <button class="secondary-action" type="button" (click)="openEditRequest(request)">
+                      {{ t('edit') }}
+                    </button>
+                    <button class="danger-action" type="button" (click)="deleteRequest(request)">
+                      {{ t('delete') }}
+                    </button>
+                  </div>
                 </article>
               }
             </div>
@@ -260,6 +479,7 @@
               <svg lucideListChecks size="21" aria-hidden="true"></svg>
             </div>
 
+            @if (equipmentRequests[0]) {
             <div class="check-list">
               @for (check of equipmentRequests[0].checks; track check.label) {
                 <span [class.failed]="!check.passed">
@@ -286,6 +506,8 @@
               }
             </div>
 
+            }
+
             <p class="muted request-note">{{ t('requestFlowNote') }}</p>
           </article>
         </section>
@@ -298,7 +520,10 @@
               <span>{{ t('projectsOverview') }}</span>
               <h2>{{ t('projectsTitle') }}</h2>
             </div>
-            <svg lucideBuilding2 size="21" aria-hidden="true"></svg>
+            <button class="secondary-action" type="button" (click)="openCreateProject()">
+              <svg lucidePlus size="18" aria-hidden="true"></svg>
+              {{ t('addProject') }}
+            </button>
           </div>
 
           <div class="project-grid">
@@ -370,6 +595,15 @@
                     <i [style.width.%]="project.progress"></i>
                   </div>
                 </div>
+
+                <div class="crud-actions">
+                  <button class="secondary-action" type="button" (click)="openEditProject(project)">
+                    {{ t('edit') }}
+                  </button>
+                  <button class="danger-action" type="button" (click)="deleteProject(project)">
+                    {{ t('delete') }}
+                  </button>
+                </div>
               </article>
             }
           </div>
@@ -384,7 +618,10 @@
                 <span>{{ t('assetRegister') }}</span>
                 <h2>{{ t('ownedAndRented') }}</h2>
               </div>
-              <svg lucideBoxes size="21" aria-hidden="true"></svg>
+              <button class="secondary-action" type="button" (click)="openCreateEquipment()">
+                <svg lucidePlus size="18" aria-hidden="true"></svg>
+                {{ t('addEquipment') }}
+              </button>
             </div>
             <div class="table">
               @for (item of equipment; track item.id) {
@@ -432,6 +669,14 @@
                 <dd>{{ text(selectedAsset().nextAction) }}</dd>
               </div>
             </dl>
+            <div class="crud-actions">
+              <button class="secondary-action" type="button" (click)="openEditEquipment(selectedAsset())">
+                {{ t('edit') }}
+              </button>
+              <button class="danger-action" type="button" (click)="deleteEquipment(selectedAsset())">
+                {{ t('delete') }}
+              </button>
+            </div>
           </article>
         </section>
       }
@@ -542,7 +787,7 @@
             <svg lucideCircleDollarSign size="21" aria-hidden="true"></svg>
           </div>
           <div class="cost-list">
-            @for (cost of projectCosts; track cost.project) {
+            @for (cost of projectCosts(); track cost.project) {
               <article>
                 <div>
                   <strong>{{ text(cost.project) }}</strong>

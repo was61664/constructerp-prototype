@@ -1,5 +1,6 @@
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import {
   LucideBadgeDollarSign,
   LucideBell,
@@ -103,6 +104,8 @@ type ProjectRecord = {
 };
 
 type NavGroupId = 'overview' | 'mainData' | 'projectOperations' | 'analytics';
+type EditorEntity = 'project' | 'equipment' | 'request';
+type EditorMode = 'create' | 'edit';
 
 const arabicDigitMap: Record<string, string> = {
   '0': '٠',
@@ -123,6 +126,25 @@ const translations = {
     search: 'Search equipment, projects, vendors, inspections',
     notifications: 'Notifications',
     newRequest: 'New Request',
+    addProject: 'Add Project',
+    addEquipment: 'Add Equipment',
+    edit: 'Edit',
+    delete: 'Delete',
+    save: 'Save',
+    cancel: 'Cancel',
+    createProject: 'Create project',
+    editProject: 'Edit project',
+    createEquipment: 'Create equipment',
+    editEquipment: 'Edit equipment',
+    createEquipmentRequest: 'Create equipment request',
+    editEquipmentRequest: 'Edit equipment request',
+    crudHint: 'Mock CRUD changes are saved locally in this browser.',
+    name: 'Name',
+    equipment: 'Equipment',
+    type: 'Type',
+    dailyCost: 'Daily cost',
+    utilization: 'Utilization',
+    code: 'Code',
     eyebrow: 'Construction equipment ERP',
     heading: 'Equipment, rentals, inspections, and project costs in one view',
     export: 'Export Report',
@@ -178,7 +200,6 @@ const translations = {
     assetDetail: 'Asset detail',
     project: 'Project',
     ownership: 'Ownership',
-    dailyCost: 'Daily cost',
     nextAction: 'Next action',
     vendorRentals: 'Vendor rentals',
     activeCommitments: 'Active external equipment commitments',
@@ -209,6 +230,25 @@ const translations = {
     search: 'ابحث عن المعدات أو المشاريع أو الموردين أو التفتيشات',
     notifications: 'الإشعارات',
     newRequest: 'طلب جديد',
+    addProject: 'إضافة مشروع',
+    addEquipment: 'إضافة معدة',
+    edit: 'تعديل',
+    delete: 'حذف',
+    save: 'حفظ',
+    cancel: 'إلغاء',
+    createProject: 'إنشاء مشروع',
+    editProject: 'تعديل مشروع',
+    createEquipment: 'إنشاء معدة',
+    editEquipment: 'تعديل معدة',
+    createEquipmentRequest: 'إنشاء طلب معدة',
+    editEquipmentRequest: 'تعديل طلب معدة',
+    crudHint: 'يتم حفظ تغييرات CRUD التجريبية محليا في هذا المتصفح.',
+    name: 'الاسم',
+    equipment: 'المعدة',
+    type: 'النوع',
+    dailyCost: 'التكلفة اليومية',
+    utilization: 'الاستخدام',
+    code: 'الكود',
     eyebrow: 'نظام ERP لمعدات المقاولات',
     heading: 'إدارة المعدات والإيجارات والتفتيشات وتكاليف المشاريع في شاشة واحدة',
     export: 'تصدير التقرير',
@@ -264,7 +304,6 @@ const translations = {
     assetDetail: 'تفاصيل المعدة',
     project: 'المشروع',
     ownership: 'الملكية',
-    dailyCost: 'التكلفة اليومية',
     nextAction: 'الإجراء التالي',
     vendorRentals: 'إيجارات الموردين',
     activeCommitments: 'التزامات المعدات الخارجية النشطة',
@@ -430,6 +469,7 @@ const displayText: Record<Language, Record<string, string>> = {
   selector: 'app-root',
   imports: [
     CommonModule,
+    FormsModule,
     LucideBadgeDollarSign,
     LucideBell,
     LucideBoxes,
@@ -464,6 +504,53 @@ export class App {
   protected readonly language = signal<Language>('en');
   protected readonly activeModule = signal<ModuleId>('dashboard');
   protected readonly selectedEquipment = signal('EQ-104');
+  protected readonly dataVersion = signal(0);
+  protected readonly editorEntity = signal<EditorEntity | null>(null);
+  protected readonly editorMode = signal<EditorMode>('create');
+  protected editingKey = '';
+
+  protected projectDraft: ProjectRecord = {
+    name: '',
+    code: '',
+    client: '',
+    manager: '',
+    location: '',
+    status: 'Active',
+    budget: 0,
+    equipmentSpend: 0,
+    transportSpend: 0,
+    extraSpend: 0,
+    progress: 0,
+  };
+
+  protected equipmentDraft: Equipment = {
+    id: '',
+    name: '',
+    type: '',
+    ownership: 'Owned',
+    project: '',
+    status: 'Working',
+    utilization: 0,
+    dailyCost: 0,
+    nextAction: '',
+  };
+
+  protected requestDraft: EquipmentRequest = {
+    id: '',
+    equipment: '',
+    project: '',
+    ownership: 'Owned',
+    requestedBy: '',
+    requiredDate: '',
+    returnDate: '',
+    location: '',
+    purpose: '',
+    estimatedCost: 0,
+    stage: 'Request',
+    status: 'Draft',
+    checks: [],
+    receivingChecks: [],
+  };
 
   protected readonly modules: Array<{ id: ModuleId; label: string; caption: string; icon: string }> = [
     { id: 'dashboard', label: 'Dashboard', caption: 'Executive view', icon: 'gauge' },
@@ -477,7 +564,7 @@ export class App {
     { id: 'reports', label: 'Reports', caption: 'Decision support', icon: 'chart' },
   ];
 
-  protected readonly projects: ProjectRecord[] = [
+  protected projects: ProjectRecord[] = [
     {
       name: 'Downtown Tower',
       code: 'PRJ-1001',
@@ -519,7 +606,7 @@ export class App {
     },
   ];
 
-  protected readonly equipmentRequests: EquipmentRequest[] = [
+  protected equipmentRequests: EquipmentRequest[] = [
     {
       id: 'REQ-2407',
       equipment: 'Excavator 36T',
@@ -582,7 +669,7 @@ export class App {
     },
   ];
 
-  protected readonly equipment: Equipment[] = [
+  protected equipment: Equipment[] = [
     {
       id: 'EQ-104',
       name: 'Crawler Crane 80T',
@@ -691,14 +778,23 @@ export class App {
     },
   ];
 
-  protected readonly projectCosts = [
-    { project: 'Downtown Tower', equipment: 184000, transport: 24500, extras: 11200, progress: 76 },
-    { project: 'Airport Expansion', equipment: 139000, transport: 31800, extras: 8400, progress: 64 },
-    { project: 'Metro Station Works', equipment: 98000, transport: 14900, extras: 6200, progress: 42 },
-  ];
+  protected readonly projectCosts = computed(() => {
+    this.dataVersion();
+
+    return this.projects.map((project) => ({
+      project: project.name,
+      equipment: project.equipmentSpend,
+      transport: project.transportSpend,
+      extras: project.extraSpend,
+      progress: project.progress,
+    }));
+  });
 
   protected readonly selectedAsset = computed(
-    () => this.equipment.find((item) => item.id === this.selectedEquipment()) ?? this.equipment[0],
+    () => {
+      this.dataVersion();
+      return this.equipment.find((item) => item.id === this.selectedEquipment()) ?? this.equipment[0];
+    },
   );
 
   protected readonly localizedModules = computed(() =>
@@ -722,6 +818,7 @@ export class App {
   protected readonly numberLocale = computed(() => (this.isArabic() ? 'ar-KW' : 'en-US'));
 
   protected readonly totals = computed(() => {
+    this.dataVersion();
     const rented = this.equipment.filter((item) => item.ownership === 'External Rental').length;
     const idle = this.equipment.filter((item) => item.status === 'Idle').length;
     const dailySpend = this.equipment.reduce((sum, item) => sum + item.dailyCost, 0);
@@ -733,6 +830,8 @@ export class App {
   });
 
   constructor() {
+    this.loadMockData();
+
     effect(() => {
       const language = this.language();
       const direction = language === 'ar' ? 'rtl' : 'ltr';
@@ -740,6 +839,11 @@ export class App {
       this.document.documentElement.lang = language;
       this.document.documentElement.dir = direction;
       this.document.body.dir = direction;
+    });
+
+    effect(() => {
+      this.dataVersion();
+      this.saveMockData();
     });
   }
 
@@ -754,6 +858,194 @@ export class App {
   protected selectEquipment(id: string): void {
     this.selectedEquipment.set(id);
     this.activeModule.set('equipment');
+  }
+
+  protected openCreateProject(): void {
+    this.activeModule.set('projects');
+    this.editorMode.set('create');
+    this.editorEntity.set('project');
+    this.editingKey = '';
+    this.projectDraft = {
+      name: '',
+      code: `PRJ-${this.nextNumber(this.projects.map((project) => project.code), 'PRJ-')}`,
+      client: '',
+      manager: '',
+      location: '',
+      status: 'Active',
+      budget: 0,
+      equipmentSpend: 0,
+      transportSpend: 0,
+      extraSpend: 0,
+      progress: 0,
+    };
+  }
+
+  protected openEditProject(project: ProjectRecord): void {
+    this.activeModule.set('projects');
+    this.editorMode.set('edit');
+    this.editorEntity.set('project');
+    this.editingKey = project.code;
+    this.projectDraft = { ...project };
+  }
+
+  protected saveProject(): void {
+    const project = { ...this.projectDraft };
+
+    if (!project.name.trim() || !project.code.trim()) {
+      return;
+    }
+
+    if (this.editorMode() === 'edit') {
+      this.projects = this.projects.map((item) => (item.code === this.editingKey ? project : item));
+    } else {
+      this.projects = [project, ...this.projects.filter((item) => item.code !== project.code)];
+    }
+
+    this.closeEditor();
+    this.touchData();
+  }
+
+  protected deleteProject(project: ProjectRecord): void {
+    if (!this.confirmDelete(project.name)) {
+      return;
+    }
+
+    this.projects = this.projects.filter((item) => item.code !== project.code);
+    this.touchData();
+  }
+
+  protected openCreateEquipment(): void {
+    this.activeModule.set('equipment');
+    this.editorMode.set('create');
+    this.editorEntity.set('equipment');
+    this.editingKey = '';
+    this.equipmentDraft = {
+      id: `EQ-${this.nextNumber(this.equipment.map((item) => item.id), 'EQ-')}`,
+      name: '',
+      type: '',
+      ownership: 'Owned',
+      project: this.projects[0]?.name ?? '',
+      status: 'Working',
+      utilization: 0,
+      dailyCost: 0,
+      nextAction: '',
+    };
+  }
+
+  protected openEditEquipment(item: Equipment): void {
+    this.activeModule.set('equipment');
+    this.editorMode.set('edit');
+    this.editorEntity.set('equipment');
+    this.editingKey = item.id;
+    this.equipmentDraft = { ...item };
+  }
+
+  protected saveEquipment(): void {
+    const item = { ...this.equipmentDraft };
+
+    if (!item.id.trim() || !item.name.trim()) {
+      return;
+    }
+
+    item.utilization = this.clampPercent(item.utilization);
+    item.dailyCost = Math.max(0, Number(item.dailyCost) || 0);
+
+    if (this.editorMode() === 'edit') {
+      this.equipment = this.equipment.map((asset) => (asset.id === this.editingKey ? item : asset));
+    } else {
+      this.equipment = [item, ...this.equipment.filter((asset) => asset.id !== item.id)];
+    }
+
+    this.selectedEquipment.set(item.id);
+    this.closeEditor();
+    this.touchData();
+  }
+
+  protected deleteEquipment(item: Equipment): void {
+    if (!this.confirmDelete(item.name)) {
+      return;
+    }
+
+    this.equipment = this.equipment.filter((asset) => asset.id !== item.id);
+    this.selectedEquipment.set(this.equipment[0]?.id ?? '');
+    this.touchData();
+  }
+
+  protected openCreateRequest(): void {
+    this.activeModule.set('requests');
+    this.editorMode.set('create');
+    this.editorEntity.set('request');
+    this.editingKey = '';
+    this.requestDraft = {
+      id: `REQ-${this.nextNumber(this.equipmentRequests.map((request) => request.id), 'REQ-')}`,
+      equipment: this.equipment[0]?.name ?? '',
+      project: this.projects[0]?.name ?? '',
+      ownership: 'Owned',
+      requestedBy: '',
+      requiredDate: 'Jul 20',
+      returnDate: 'Jul 28',
+      location: '',
+      purpose: '',
+      estimatedCost: 0,
+      stage: 'Request',
+      status: 'Draft',
+      checks: this.defaultRequestChecks(),
+      receivingChecks: this.defaultReceivingChecks(),
+    };
+  }
+
+  protected openEditRequest(request: EquipmentRequest): void {
+    this.activeModule.set('requests');
+    this.editorMode.set('edit');
+    this.editorEntity.set('request');
+    this.editingKey = request.id;
+    this.requestDraft = {
+      ...request,
+      checks: request.checks.map((check) => ({ ...check })),
+      receivingChecks: request.receivingChecks.map((check) => ({ ...check })),
+    };
+  }
+
+  protected saveRequest(): void {
+    const request = {
+      ...this.requestDraft,
+      checks: this.requestDraft.checks.map((check) => ({ ...check })),
+      receivingChecks: this.requestDraft.receivingChecks.map((check) => ({ ...check })),
+    };
+
+    if (!request.id.trim() || !request.equipment.trim()) {
+      return;
+    }
+
+    request.estimatedCost = Math.max(0, Number(request.estimatedCost) || 0);
+
+    if (this.editorMode() === 'edit') {
+      this.equipmentRequests = this.equipmentRequests.map((item) =>
+        item.id === this.editingKey ? request : item,
+      );
+    } else {
+      this.equipmentRequests = [
+        request,
+        ...this.equipmentRequests.filter((item) => item.id !== request.id),
+      ];
+    }
+
+    this.closeEditor();
+    this.touchData();
+  }
+
+  protected deleteRequest(request: EquipmentRequest): void {
+    if (!this.confirmDelete(request.id)) {
+      return;
+    }
+
+    this.equipmentRequests = this.equipmentRequests.filter((item) => item.id !== request.id);
+    this.touchData();
+  }
+
+  protected closeEditor(): void {
+    this.editorEntity.set(null);
+    this.editingKey = '';
   }
 
   protected projectEquipmentCount(project: string): number {
@@ -816,6 +1108,92 @@ export class App {
 
   protected text(value: string): string {
     return this.localizeDigits(displayText[this.language()][value] ?? value);
+  }
+
+  private touchData(): void {
+    this.dataVersion.update((version) => version + 1);
+  }
+
+  private nextNumber(values: string[], prefix: string): string {
+    const next =
+      values
+        .map((value) => Number(value.replace(prefix, '')))
+        .filter((value) => Number.isFinite(value))
+        .reduce((max, value) => Math.max(max, value), 0) + 1;
+
+    return String(next).padStart(4, '0');
+  }
+
+  private clampPercent(value: number): number {
+    return Math.min(100, Math.max(0, Math.round(Number(value) || 0)));
+  }
+
+  private confirmDelete(label: string): boolean {
+    return this.document.defaultView?.confirm(`Delete ${label}?`) ?? true;
+  }
+
+  private defaultRequestChecks(): EquipmentRequest['checks'] {
+    return [
+      { label: 'Equipment available', passed: true },
+      { label: 'Project is active', passed: true },
+      { label: 'No idle similar equipment', passed: true },
+      { label: 'Rental period is valid', passed: true },
+      { label: 'Cost within budget', passed: true },
+      { label: 'Delivery cost entered', passed: true },
+    ];
+  }
+
+  private defaultReceivingChecks(): EquipmentRequest['receivingChecks'] {
+    return [
+      { label: 'Approved request exists', passed: false },
+      { label: 'Correct equipment and project', passed: false },
+      { label: 'Transport details entered', passed: false },
+      { label: 'Arrival condition documented', passed: false },
+      { label: 'Photos/videos attached', passed: false },
+      { label: 'Receiver signature captured', passed: false },
+    ];
+  }
+
+  private loadMockData(): void {
+    const storage = this.document.defaultView?.localStorage;
+
+    if (!storage) {
+      return;
+    }
+
+    this.projects = this.readStoredValue(storage, 'constructerp.projects', this.projects);
+    this.equipment = this.readStoredValue(storage, 'constructerp.equipment', this.equipment);
+    this.equipmentRequests = this.readStoredValue(
+      storage,
+      'constructerp.equipmentRequests',
+      this.equipmentRequests,
+    );
+  }
+
+  private saveMockData(): void {
+    const storage = this.document.defaultView?.localStorage;
+
+    if (!storage) {
+      return;
+    }
+
+    storage.setItem('constructerp.projects', JSON.stringify(this.projects));
+    storage.setItem('constructerp.equipment', JSON.stringify(this.equipment));
+    storage.setItem('constructerp.equipmentRequests', JSON.stringify(this.equipmentRequests));
+  }
+
+  private readStoredValue<T>(storage: Storage, key: string, fallback: T): T {
+    const value = storage.getItem(key);
+
+    if (!value) {
+      return fallback;
+    }
+
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
   }
 
   private localizeDigits(value: string): string {
