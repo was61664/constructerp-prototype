@@ -137,9 +137,24 @@ p {
 
 // Tables: flat header band, hairline row separators, no shadow.
 .mat-mdc-table {
+  // Material paints the table from its own `--mat-table-background-color`,
+  // which the M2 DARK palette sets to a neutral #424242 — lighter than our
+  // --surface and a different hue. Left alone, rows render mid-grey while
+  // :hover resolves to our darker --surface-hover, so hovering made a row go
+  // DARKER than the rest of the table. Overriding the token is more reliable
+  // than out-specifying the cascade with a `background` declaration.
+  --mat-table-background-color: var(--surface);
+
   background: $surface;
   border-radius: 0;
   box-shadow: none;
+
+  // Rows stay transparent so the table surface shows through and :hover is the
+  // only thing that paints them.
+  .mat-mdc-row,
+  .mat-mdc-footer-row {
+    background: transparent;
+  }
 
   .mat-mdc-header-row {
     background: $surface-sunken;
@@ -222,6 +237,61 @@ p {
   height: 6px;
 }
 
+// Theme picker menu. Lives here, not in theme-menu.scss, because the panel is
+// rendered into the CDK overlay container — outside the component's DOM, where
+// view-encapsulated styles can never reach it.
+.theme-menu-panel {
+  min-inline-size: 236px;
+
+  .menu-heading {
+    padding: $space-sm $space-md $space-xs;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $text-hint;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
+    inline-size: 100%;
+  }
+
+  .item-icon {
+    display: inline-flex;
+    color: $text-secondary;
+    flex-shrink: 0;
+  }
+
+  .item-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .item-label {
+    font-size: 14px;
+    line-height: 20px;
+    color: $text-primary;
+  }
+
+  .item-note {
+    font-size: 11px;
+    line-height: 16px;
+    color: $text-hint;
+  }
+
+  .item-check {
+    display: inline-flex;
+    inline-size: 16px;
+    color: $brand-primary;
+    flex-shrink: 0;
+  }
+}
+
 .mat-mdc-tooltip .mdc-tooltip__surface {
   border-radius: $radius;
   font-size: 12px;
@@ -245,6 +315,13 @@ p {
   display: flex;
   flex-direction: column;
   gap: $space-lg;
+
+  // Phones: 24px of gutter on each side costs 13% of a 375px screen. Tighten
+  // it so table columns and card content get the width instead.
+  @media (max-width: 600px) {
+    padding: $space-md;
+    gap: $space-md;
+  }
 }
 
 // Responsive card grids. `auto-fit` keeps a single breakpoint-free rule.
@@ -265,9 +342,38 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
+// Stacked card list that replaces a table below the compact breakpoint.
+.record-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
 // Wide tables scroll inside their card rather than stretching the page.
 .table-scroll {
   overflow-x: auto;
+  // Momentum scrolling on iOS, and a visible hint that the region is pannable.
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+// Touch devices: Material's 36px-tall buttons are below the 44px minimum
+// comfortable tap target. Icon buttons are already 48px, so this targets the
+// text buttons only.
+@media (pointer: coarse) {
+  .mat-mdc-button,
+  .mat-mdc-raised-button,
+  .mat-mdc-outlined-button,
+  .mat-mdc-unelevated-button {
+    min-height: 44px;
+  }
+
+  .mat-mdc-menu-item {
+    min-height: 48px;
+  }
 }
 
 .text-secondary {

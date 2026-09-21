@@ -21,6 +21,13 @@
   display: flex;
   flex-direction: column;
   background: $app-background;
+
+  // The shell scrolls vertically only. Without this, a wide table inside a
+  // card leaks its width into this container (Material's drawer content is
+  // `overflow: auto`), and on a phone the WHOLE page pans sideways — header,
+  // toolbar and all — instead of just the table scrolling inside its card.
+  // Horizontal scrolling belongs to `.table-scroll`, nowhere else.
+  overflow-x: hidden;
 }
 
 .shell-main {

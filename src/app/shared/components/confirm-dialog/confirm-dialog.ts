@@ -26,7 +26,13 @@ export interface ConfirmDialogData {
       <button mat-stroked-button type="button" (click)="dialogRef.close(false)">
         {{ data.cancelLabel }}
       </button>
-      <button mat-raised-button color="warn" type="button" cdkFocusInitial (click)="dialogRef.close(true)">
+      <button
+        mat-raised-button
+        color="warn"
+        type="button"
+        cdkFocusInitial
+        (click)="dialogRef.close(true)"
+      >
         {{ data.confirmLabel }}
       </button>
     </mat-dialog-actions>

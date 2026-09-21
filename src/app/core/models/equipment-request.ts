@@ -3,12 +3,7 @@ import type { Ownership } from './equipment';
 export type RequestStage = 'Request' | 'Approval' | 'Receiving' | 'Inspection';
 
 export type RequestStatus =
-  | 'Draft'
-  | 'Submitted'
-  | 'Approved'
-  | 'Received'
-  | 'Inspection Pending'
-  | 'Ready to Use';
+  'Draft' | 'Submitted' | 'Approved' | 'Received' | 'Inspection Pending' | 'Ready to Use';
 
 export interface RequestCheck {
   label: string;

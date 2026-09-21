@@ -82,3 +82,13 @@ button svg {
     display: none;
   }
 }
+
+// At 375px the five toolbar controls total ~382px and the primary action's
+// label gets clipped. The notifications bell is the one to drop: it is
+// non-functional in this phase, so hiding it costs nothing and buys back the
+// 48px that keeps "New Request" readable.
+@media (max-width: 600px) {
+  .notifications-button {
+    display: none;
+  }
+}

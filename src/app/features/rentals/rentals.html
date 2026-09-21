@@ -23,8 +23,32 @@
     />
   </section>
 
-  <app-section-card [eyebrow]="i18n.t('vendorRentals')" [title]="i18n.t('activeCommitments')" flush>
-    @if (store.rentals().length) {
+  <app-section-card
+    [eyebrow]="i18n.t('vendorRentals')"
+    [title]="i18n.t('activeCommitments')"
+    [flush]="!layout.isCompact()"
+  >
+    @if (!store.rentals().length) {
+      <app-empty-state [title]="i18n.t('noRecords')" />
+    } @else if (layout.isCompact()) {
+      <ul class="record-list">
+        @for (rental of store.rentals(); track rental.asset) {
+          <li>
+            <app-record-card
+              [title]="i18n.text(rental.vendor)"
+              [subtitle]="i18n.text(rental.asset)"
+              [fields]="fieldsFor(rental)"
+            >
+              <app-status-chip
+                cardStatus
+                [status]="rental.status"
+                [label]="i18n.text(rental.status)"
+              />
+            </app-record-card>
+          </li>
+        }
+      </ul>
+    } @else {
       <div class="table-scroll">
         <table mat-table [dataSource]="store.rentals()" class="rentals-table">
           <ng-container matColumnDef="vendor">
@@ -69,8 +93,6 @@
           <tr mat-row *matRowDef="let row; columns: columns"></tr>
         </table>
       </div>
-    } @else {
-      <app-empty-state [title]="i18n.t('noRecords')" />
     }
   </app-section-card>
 </div>

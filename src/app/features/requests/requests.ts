@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -10,11 +17,13 @@ import { defaultReceivingChecks, defaultRequestChecks } from '../../core/data/mo
 import type { EquipmentRequest } from '../../core/models';
 import { ErpStore } from '../../core/services/erp-store';
 import { I18nService } from '../../core/services/i18n';
+import { BusyIcon } from '../../shared/components/busy-icon/busy-icon';
 import { EmptyState } from '../../shared/components/empty-state/empty-state';
 import { PageHeader } from '../../shared/components/page-header/page-header';
 import { SectionCard } from '../../shared/components/section-card/section-card';
 import { StatusChip } from '../../shared/components/status-chip/status-chip';
 import { ConfirmService } from '../../shared/services/confirm';
+import { BusyState } from '../../shared/utils/busy-state';
 import { RequestChecklist } from './request-checklist/request-checklist';
 import { RequestFormDialog, type RequestFormData } from './request-form-dialog/request-form-dialog';
 import { RequestStageTracker } from './request-stage-tracker/request-stage-tracker';
@@ -23,6 +32,7 @@ import { RequestStageTracker } from './request-stage-tracker/request-stage-track
   selector: 'app-requests',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    BusyIcon,
     EmptyState,
     MatButtonModule,
     MatTooltipModule,
@@ -46,6 +56,9 @@ export class Requests {
 
   protected readonly i18n = inject(I18nService);
   protected readonly store = inject(ErpStore);
+
+  /** Which button is mid-save, so only that one turns its gear. */
+  protected readonly busy = new BusyState();
 
   private readonly selectedId = signal<string>('');
 
@@ -94,7 +107,7 @@ export class Requests {
     const result = await this.openDialog({ mode: 'create', request: blank, ...this.lookups() });
 
     if (result) {
-      this.store.createRequest(result);
+      await this.busy.run('create', () => this.store.createRequest(result));
       this.selectedId.set(result.id);
     }
   }
@@ -103,14 +116,14 @@ export class Requests {
     const result = await this.openDialog({ mode: 'edit', request, ...this.lookups() });
 
     if (result) {
-      this.store.updateRequest(request.id, result);
+      await this.busy.run(request.id, () => this.store.updateRequest(request.id, result));
       this.selectedId.set(result.id);
     }
   }
 
   protected async remove(request: EquipmentRequest): Promise<void> {
     if (await this.confirmService.confirmDelete(request.id)) {
-      this.store.deleteRequest(request.id);
+      await this.busy.run(`delete:${request.id}`, () => this.store.deleteRequest(request.id));
     }
   }
 

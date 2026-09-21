@@ -10,9 +10,29 @@
       [eyebrow]="i18n.t('transportation')"
       [title]="i18n.t('transportPlanning')"
       class="span-wide"
-      flush
+      [flush]="!layout.isCompact()"
     >
-      @if (store.transportMoves().length) {
+      @if (!store.transportMoves().length) {
+        <app-empty-state [title]="i18n.t('noRecords')" />
+      } @else if (layout.isCompact()) {
+        <ul class="record-list">
+          @for (move of store.transportMoves(); track move.id) {
+            <li>
+              <app-record-card
+                [title]="routeLabel(move)"
+                [subtitle]="i18n.text(move.asset)"
+                [fields]="fieldsFor(move)"
+              >
+                <app-status-chip
+                  cardStatus
+                  [status]="move.status"
+                  [label]="i18n.text(move.status)"
+                />
+              </app-record-card>
+            </li>
+          }
+        </ul>
+      } @else {
         <div class="table-scroll">
           <table mat-table [dataSource]="store.transportMoves()" class="transport-table">
             <ng-container matColumnDef="route">
@@ -65,8 +85,6 @@
             <tr mat-row *matRowDef="let row; columns: columns"></tr>
           </table>
         </div>
-      } @else {
-        <app-empty-state [title]="i18n.t('noRecords')" />
       }
     </app-section-card>
 

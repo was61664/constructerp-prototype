@@ -4,15 +4,86 @@
     [title]="i18n.t('ownedAndRented')"
     [subtitle]="i18n.t('fleetVisibility')"
   >
-    <button mat-raised-button color="primary" type="button" (click)="openCreate()">
-      <svg lucidePlus size="16" aria-hidden="true"></svg>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      [disabled]="busy.any"
+      [attr.aria-busy]="busy.is('create')"
+      (click)="openCreate()"
+    >
+      <app-busy-icon [busy]="busy.is('create')">
+        <svg lucidePlus size="16" aria-hidden="true"></svg>
+      </app-busy-icon>
       <span>{{ i18n.t('addEquipment') }}</span>
     </button>
   </app-page-header>
 
   <div class="equipment-layout">
-    <app-section-card [eyebrow]="i18n.t('assetRegister')" [title]="i18n.t('ownedAndRented')" flush>
-      @if (store.equipment().length) {
+    <app-section-card
+      [eyebrow]="i18n.t('assetRegister')"
+      [title]="i18n.t('ownedAndRented')"
+      [flush]="!layout.isCompact()"
+    >
+      @if (!store.equipment().length) {
+        <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
+      } @else if (layout.isCompact()) {
+        <!--
+          Each card carries every field the detail panel shows, so the panel is
+          hidden below this width rather than duplicating the record.
+        -->
+        <ul class="record-list">
+          @for (item of store.equipment(); track item.id) {
+            <li>
+              <app-record-card
+                [title]="i18n.text(item.name)"
+                [subtitle]="i18n.code(item.id)"
+                [subtitleIsCode]="true"
+                [fields]="fieldsFor(item)"
+              >
+                <app-status-chip
+                  cardStatus
+                  [status]="item.status"
+                  [label]="i18n.text(item.status)"
+                />
+
+                <app-meter-bar
+                  [label]="i18n.t('utilization')"
+                  [value]="item.utilization"
+                  [valueLabel]="i18n.formatPercent(item.utilization)"
+                />
+
+                <button
+                  cardActions
+                  mat-icon-button
+                  type="button"
+                  [disabled]="busy.any"
+                  [attr.aria-busy]="busy.is(item.id)"
+                  [attr.aria-label]="i18n.t('edit') + ' ' + i18n.text(item.name)"
+                  (click)="openEdit(item)"
+                >
+                  <app-busy-icon [busy]="busy.is(item.id)" [size]="17">
+                    <svg lucidePencil size="17" aria-hidden="true"></svg>
+                  </app-busy-icon>
+                </button>
+                <button
+                  cardActions
+                  mat-icon-button
+                  type="button"
+                  [disabled]="busy.any"
+                  [attr.aria-busy]="busy.is('delete:' + item.id)"
+                  [attr.aria-label]="i18n.t('delete') + ' ' + i18n.text(item.name)"
+                  (click)="remove(item)"
+                >
+                  <app-busy-icon [busy]="busy.is('delete:' + item.id)" [size]="17">
+                    <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                  </app-busy-icon>
+                </button>
+              </app-record-card>
+            </li>
+          }
+        </ul>
+      } @else {
         <div class="table-scroll">
           <table mat-table [dataSource]="store.equipment()" class="equipment-table">
             <ng-container matColumnDef="name">
@@ -73,20 +144,28 @@
                 <button
                   mat-icon-button
                   type="button"
+                  [disabled]="busy.any"
+                  [attr.aria-busy]="busy.is(item.id)"
                   [attr.aria-label]="i18n.t('edit') + ' ' + i18n.text(item.name)"
                   [matTooltip]="i18n.t('edit')"
                   (click)="openEdit(item); $event.stopPropagation()"
                 >
-                  <svg lucidePencil size="17" aria-hidden="true"></svg>
+                  <app-busy-icon [busy]="busy.is(item.id)" [size]="17">
+                    <svg lucidePencil size="17" aria-hidden="true"></svg>
+                  </app-busy-icon>
                 </button>
                 <button
                   mat-icon-button
                   type="button"
+                  [disabled]="busy.any"
+                  [attr.aria-busy]="busy.is('delete:' + item.id)"
                   [attr.aria-label]="i18n.t('delete') + ' ' + i18n.text(item.name)"
                   [matTooltip]="i18n.t('delete')"
                   (click)="remove(item); $event.stopPropagation()"
                 >
-                  <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                  <app-busy-icon [busy]="busy.is('delete:' + item.id)" [size]="17">
+                    <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                  </app-busy-icon>
                 </button>
               </td>
             </ng-container>
@@ -109,12 +188,10 @@
             ></tr>
           </table>
         </div>
-      } @else {
-        <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
       }
     </app-section-card>
 
-    @if (store.selectedEquipment(); as asset) {
+    @if (!layout.isCompact() && store.selectedEquipment(); as asset) {
       <app-section-card [eyebrow]="i18n.t('assetDetail')" [title]="i18n.text(asset.name)">
         <div class="detail">
           <app-meter-bar
@@ -157,8 +234,16 @@
             <p>{{ i18n.text(asset.nextAction) }}</p>
           </div>
 
-          <button mat-stroked-button type="button" (click)="openEdit(asset)">
-            <svg lucidePencil size="16" aria-hidden="true"></svg>
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="busy.any"
+            [attr.aria-busy]="busy.is(asset.id)"
+            (click)="openEdit(asset)"
+          >
+            <app-busy-icon [busy]="busy.is(asset.id)">
+              <svg lucidePencil size="16" aria-hidden="true"></svg>
+            </app-busy-icon>
             <span>{{ i18n.t('edit') }}</span>
           </button>
         </div>

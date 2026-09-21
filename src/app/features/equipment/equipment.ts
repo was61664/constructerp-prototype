@@ -9,12 +9,16 @@ import { firstValueFrom } from 'rxjs';
 import type { Equipment } from '../../core/models';
 import { ErpStore } from '../../core/services/erp-store';
 import { I18nService } from '../../core/services/i18n';
+import { LayoutService } from '../../core/services/layout';
+import { BusyIcon } from '../../shared/components/busy-icon/busy-icon';
 import { EmptyState } from '../../shared/components/empty-state/empty-state';
 import { MeterBar } from '../../shared/components/meter-bar/meter-bar';
 import { PageHeader } from '../../shared/components/page-header/page-header';
+import { RecordCard, type RecordField } from '../../shared/components/record-card/record-card';
 import { SectionCard } from '../../shared/components/section-card/section-card';
 import { StatusChip } from '../../shared/components/status-chip/status-chip';
 import { ConfirmService } from '../../shared/services/confirm';
+import { BusyState } from '../../shared/utils/busy-state';
 import {
   EquipmentFormDialog,
   type EquipmentFormData,
@@ -28,12 +32,14 @@ import {
   selector: 'app-equipment',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    BusyIcon,
     EmptyState,
     MatButtonModule,
     MatTableModule,
     MatTooltipModule,
     MeterBar,
     PageHeader,
+    RecordCard,
     SectionCard,
     StatusChip,
     LucidePencil,
@@ -49,6 +55,10 @@ export class EquipmentPage {
 
   protected readonly i18n = inject(I18nService);
   protected readonly store = inject(ErpStore);
+  protected readonly layout = inject(LayoutService);
+
+  /** Which button is mid-save, so only that one turns its gear. */
+  protected readonly busy = new BusyState();
 
   protected readonly columns = [
     'name',
@@ -64,6 +74,22 @@ export class EquipmentPage {
   private readonly projectNames = computed(() =>
     this.store.projects().map((project) => project.name),
   );
+
+  protected fieldsFor(item: Equipment): RecordField[] {
+    return [
+      { label: this.i18n.t('type'), value: this.i18n.text(item.type) },
+      { label: this.i18n.t('ownership'), value: this.i18n.text(item.ownership) },
+      { label: this.i18n.t('project'), value: this.i18n.text(item.project) },
+      // Utilization is deliberately absent: the meter bar below the fields
+      // already shows it, with a bar as well as the number.
+      {
+        label: this.i18n.t('dailyCost'),
+        value: this.i18n.formatMoney(item.dailyCost),
+        numeric: true,
+      },
+      { label: this.i18n.t('nextAction'), value: this.i18n.text(item.nextAction) },
+    ];
+  }
 
   protected select(item: Equipment): void {
     this.store.selectEquipment(item.id);
@@ -89,7 +115,7 @@ export class EquipmentPage {
     });
 
     if (result) {
-      this.store.createEquipment(result);
+      await this.busy.run('create', () => this.store.createEquipment(result));
     }
   }
 
@@ -101,13 +127,13 @@ export class EquipmentPage {
     });
 
     if (result) {
-      this.store.updateEquipment(item.id, result);
+      await this.busy.run(item.id, () => this.store.updateEquipment(item.id, result));
     }
   }
 
   protected async remove(item: Equipment): Promise<void> {
     if (await this.confirmService.confirmDelete(this.i18n.text(item.name))) {
-      this.store.deleteEquipment(item.id);
+      await this.busy.run(`delete:${item.id}`, () => this.store.deleteEquipment(item.id));
     }
   }
 

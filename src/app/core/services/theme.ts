@@ -74,7 +74,8 @@ export class ThemeService {
 
   /** Cycles light → dark → system, for a single-button control. */
   cycle(): void {
-    const next = this.preference() === 'light' ? 'dark' : this.preference() === 'dark' ? 'system' : 'light';
+    const next =
+      this.preference() === 'light' ? 'dark' : this.preference() === 'dark' ? 'system' : 'light';
 
     this.select(next);
   }

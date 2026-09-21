@@ -41,44 +41,51 @@
 :root {
   color-scheme: light;
 
-  // Surfaces
-  --app-background: #f5f5f5; // page canvas — never pure white
+  // Surfaces — a WHITE canvas with white cards on it.
+  // Because the canvas and the cards are the same colour, the 1px border is
+  // the ONLY thing separating a card from the page. Do not remove borders
+  // from surfaces in this system: they are load-bearing, not decoration.
+  // Depth, where it is needed, comes from the sunken tones below.
+  --app-background: #ffffff;
   --surface: #ffffff; // cards, toolbar, sidebar
-  --surface-sunken: #fafafa; // table headers, inset rows
-  --surface-hover: #f5f7fa; // row hover
-  --surface-selected: #e8f1fb; // selected row (primary 50)
+  --surface-sunken: #f6f7f8; // table headers, inset panels — recedes
+  --surface-hover: #f1f3f5; // row hover — one step darker than sunken
+  --surface-selected: #eaf2fd; // selected row (brand tint)
 
-  // Borders
-  --border-color: #e0e0e0;
-  --border-color-strong: #d0d5da;
+  // Borders — carrying the structural work, so slightly stronger than a
+  // hairline you would use over a grey canvas.
+  --border-color: #e3e5e8;
+  --border-color-strong: #ccd1d7;
 
-  // Text — contrast on --surface: primary 14.9:1, secondary 5.9:1, hint 4.6:1.
-  --text-primary: #212121;
-  --text-secondary: #5f6b76;
-  --text-hint: #78848f;
+  // Text — contrast on the white canvas: primary 17.0:1, secondary 6.3:1,
+  // hint 5.0:1. Neutral greys, no blue cast, so nothing fights the white.
+  --text-primary: #1a1a1a;
+  --text-secondary: #5a6069;
+  --text-hint: #6b7179;
   --text-inverse: #ffffff;
 
   // Brand
-  --brand-primary: #1976d2;
+  --brand-primary: #1976d2; // 4.6:1 on white
   --brand-primary-dark: #125aa6; // stronger variant (active nav text, totals)
-  --brand-primary-light: #e8f1fb; // tint (active nav background, selected row)
+  --brand-primary-light: #eaf2fd; // tint (active nav background, selected row)
 
   // Status — tinted background + dark foreground, each pair clearing 4.5:1.
   --status-success-bg: #e6f4ea;
   --status-success-fg: #1b5e20;
-  --status-info-bg: #e8f1fb;
+  --status-info-bg: #eaf2fd;
   --status-info-fg: #125aa6;
   --status-warn-bg: #fdf3e2;
   --status-warn-fg: #8a5300;
   --status-danger-bg: #fdecea;
   --status-danger-fg: #b3261e;
-  --status-neutral-bg: #eef1f4;
-  --status-neutral-fg: #455a64;
+  --status-neutral-bg: #eef0f2;
+  --status-neutral-fg: #45505a;
 
-  // Elevation — overlays only, never decoration on static cards.
-  --shadow-raised: 0 1px 2px rgba(15, 35, 60, 0.08);
-  --shadow-overlay: 0 2px 8px rgba(15, 35, 60, 0.16);
-  --scrim: rgba(15, 23, 32, 0.32);
+  // Elevation — overlays only, never decoration on static cards. On a white
+  // canvas the overlay shadow is what lifts a dialog off the page.
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-overlay: 0 4px 16px rgba(0, 0, 0, 0.14);
+  --scrim: rgba(0, 0, 0, 0.32);
 }
 
 // -----------------------------------------------------------------------------
@@ -95,42 +102,53 @@
 :root.theme-dark {
   color-scheme: dark;
 
-  --app-background: #121417;
-  --surface: #1b1f24;
-  --surface-sunken: #22272e;
-  --surface-hover: #242a31;
-  --surface-selected: #16304a;
+  // The exact mirror of the light system: a BLACK canvas, with cards barely
+  // lifted off it and 1px borders doing the separation.
+  //
+  // Surfaces are not pure #000 — a black card on a black page with a dark
+  // border is genuinely hard to locate, and the status tints need somewhere
+  // to sit. #0c0c0e is close enough to read as a true black theme while
+  // keeping cards findable. Every step below moves LIGHTER, which is what
+  // makes hover feel like "raised" rather than "dented".
+  --app-background: #000000;
+  --surface: #0c0c0e;
+  --surface-sunken: #141418; // table headers, inset panels
+  --surface-hover: #1c1c21; // row hover — lighter than the surface
+  --surface-selected: #112a44; // selected row (brand tint)
 
-  --border-color: #2c333b;
-  --border-color-strong: #3a424c;
+  --border-color: #26262b;
+  --border-color-strong: #3a3a42;
 
-  // Contrast on --surface: primary 12.6:1, secondary 7.1:1, hint 5.0:1.
-  --text-primary: #e8eaed;
-  --text-secondary: #aab3bd;
-  --text-hint: #8b95a1;
-  --text-inverse: #10151a; // sits on --brand-primary, which is light here
+  // Neutral greys, no blue cast, matching the light system's approach.
+  // Contrast on --surface: primary 17.1:1, secondary 8.2:1, hint 5.3:1.
+  --text-primary: #f0f0f2;
+  --text-secondary: #a8a8b0;
+  --text-hint: #85858e;
+  --text-inverse: #0c0c0e; // sits on --brand-primary, which is light here
 
-  // The light theme's #1976D2 only reaches ~3:1 on a dark surface, so the
-  // brand hue is stepped lighter. Same blue family, legible ground.
-  --brand-primary: #64a5f0;
-  --brand-primary-dark: #94c4f7; // "stronger" means lighter once inverted
-  --brand-primary-light: #15293d; // tint becomes a deep wash
+  // The light theme's #1976D2 only reaches ~3:1 on a dark ground, so the
+  // brand hue is stepped lighter. Same blue family. 7.4:1 on --surface.
+  --brand-primary: #5aa3f0;
+  --brand-primary-dark: #8fc4f7; // "stronger" means lighter once inverted
+  --brand-primary-light: #112a44; // tint becomes a deep wash
 
-  --status-success-bg: #17301f;
+  // Status tints are deepened so they still read as tints against black
+  // rather than as pale blocks floating on it.
+  --status-success-bg: #0e2615;
   --status-success-fg: #7fe0a1;
-  --status-info-bg: #152c44;
+  --status-info-bg: #0d2238;
   --status-info-fg: #8bc3f6;
-  --status-warn-bg: #33280f;
+  --status-warn-bg: #2a2009;
   --status-warn-fg: #f0c470;
-  --status-danger-bg: #3a1d1c;
+  --status-danger-bg: #2e1513;
   --status-danger-fg: #f59189;
-  --status-neutral-bg: #262c34;
-  --status-neutral-fg: #b4bec9;
+  --status-neutral-bg: #1a1a1e;
+  --status-neutral-fg: #b4b4bd;
 
-  // Shadows carry less on a dark ground; depth comes from the borders.
-  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow-overlay: 0 2px 10px rgba(0, 0, 0, 0.6);
-  --scrim: rgba(0, 0, 0, 0.6);
+  // Shadows barely register on black; the borders carry the depth instead.
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-overlay: 0 4px 18px rgba(0, 0, 0, 0.8);
+  --scrim: rgba(0, 0, 0, 0.7);
 }
 
 // -----------------------------------------------------------------------------

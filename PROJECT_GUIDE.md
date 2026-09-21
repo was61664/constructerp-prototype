@@ -214,6 +214,228 @@ Things that differ from the plan in §0.4, or that a reviewer should know.
 - All nine routes render with no console or page errors, in both languages.
 - Arabic RTL checked on the dashboard, tables, dialogs, and at 820px width.
 
+## 0.7 Dark mode
+
+Added after the initial rebuild, following the same pattern as the light theme rather
+than bolting on a second stylesheet.
+
+**How the tokens work — read `styles/_tokens.scss` before changing a colour**
+
+Colours are CSS custom properties (light on `:root`, dark on `:root.theme-dark`). The
+SCSS variables are thin aliases resolving to `var(--x)`. That indirection is the whole
+trick: `background: $surface` in any component already compiles to `var(--surface)`, so
+**no component stylesheet needed editing** to gain dark mode. The constraint it buys:
+these tokens can no longer be passed through Sass colour functions (`darken()`,
+`rgba($surface, .5)`) — Sass sees an opaque `var()` string. Need a variant? Add it as its
+own token, in both themes.
+
+Non-colour tokens (spacing, radius, dimensions) stay plain SCSS — they do not change
+between themes.
+
+**Material's half**
+
+`_theme.scss` gains `$constructerp-dark-theme` via `mat.m2-define-dark-theme`, with
+palettes stepped to a lighter hue (the 300 stop): `#1976D2` only reaches ~3:1 on a dark
+surface. `styles.scss` emits it under one selector with **`mat.all-component-colors`**,
+not `all-component-themes` — so the dark theme adds a colour pass, not a duplicate of
+every component's typography and density. Total cost: **+3.3 kB gzipped.**
+
+**Three states, not two**
+
+| State  | Behaviour                                             |
+| ------ | ----------------------------------------------------- |
+| Light  | Explicit. Persisted. Ignores the OS.                  |
+| Dark   | Explicit. Persisted. Ignores the OS.                  |
+| System | Default. Follows the OS **live**, no reload required. |
+
+`ThemeService` keeps `preference` (what the user chose, including `system`, persisted)
+separate from `resolved` (what is painted, never persisted).
+
+> **Do not collapse those two.** Persisting the resolved value is the classic bug in this
+> feature, and the first implementation here had it: the effect wrote storage on its first
+> run, so a fresh visit froze whatever the OS happened to say at that moment and the app
+> stopped following the OS forever — including across reloads — even though the user had
+> never chosen anything. Storage is now written **only** in `select()`. There is a
+> regression test named "should NOT write storage until the user makes an explicit
+> choice"; if you are tempted to move persistence back into the effect, that test is why.
+
+**Flash prevention**
+
+A small inline script in `index.html` applies the theme class before first paint, so a
+dark-mode machine does not flash white during boot. It is intentionally inline and
+dependency-free — an external file would be another round trip before paint. It decides
+only the first frame; `ThemeService` takes over from there.
+
+**Overlay surfaces**
+
+Dialogs, menus and select panels are pinned to our own `--surface`. Material's M2 dark
+palette uses a neutral grey for elevated surfaces, which sits at a visibly different hue
+from our blue-tinted surface — left alone, a dialog looks like it came from a different
+product than the cards behind it. Those overrides need **two-class selectors**
+(`.mat-mdc-dialog-container .mat-mdc-dialog-surface`) to match the specificity Material
+itself uses; a single-class rule silently loses the cascade.
+
+**Verified end-to-end** (Playwright, emulating OS theme changes): fresh visit follows the
+OS; OS changes mid-session are followed with no reload; an explicit choice overrides the
+OS and survives reload; returning to System resumes following immediately. Checked in
+dark + Arabic RTL together, and in dialogs and dropdown panels.
+
+## 0.8 Colour system: white canvas / black canvas
+
+The palette was revised after review. It now runs **pure white** in light and **pure
+black** in dark, with the rest of each palette kept neutral so nothing fights the base.
+
+> **This deliberately departs from §0.1's brief**, which asked for a light-grey canvas
+> and explicitly said "NOT pure white everywhere — use white for cards to create subtle
+> depth". That depth cue is gone by choice. The consequence is structural, so respect it:
+> **the 1px borders are now load-bearing.** With canvas and cards at the same colour they
+> are the only thing separating a card from the page. Do not "clean up" borders on
+> surfaces in this system — the layout dissolves without them.
+
+| Role                 | Light                       | Dark                          |
+| -------------------- | --------------------------- | ----------------------------- |
+| Canvas               | `#ffffff`                 | `#000000`                   |
+| Card surface         | `#ffffff`                 | `#0c0c0e`                   |
+| Sunken (table heads) | `#f6f7f8`                 | `#141418`                   |
+| Row hover            | `#f1f3f5`                 | `#1c1c21`                   |
+| Border               | `#e3e5e8`                 | `#26262b`                   |
+| Text primary         | `#1a1a1a`                 | `#f0f0f2`                   |
+| Brand                | `#1976d2`                 | `#5aa3f0`                   |
+
+Dark surfaces are **not** pure `#000`: a black card on a black page with a dark border is
+genuinely hard to locate, and the status tints need somewhere to sit. `#0c0c0e` reads as a
+true black theme while keeping cards findable.
+
+**The luminance ladder is the rule to preserve.** Each step — canvas → surface → sunken →
+hover — moves consistently in one direction: darker in light mode, lighter in dark mode.
+That is what makes a hovered row feel raised rather than dented.
+
+Measured contrast, both themes (all AA, 4.5:1 minimum):
+
+| Pair                      | Light     | Dark      |
+| ------------------------- | --------- | --------- |
+| text-primary on surface   | 17.4:1    | 17.2:1    |
+| text-secondary on surface | 6.3:1     | 8.3:1     |
+| text-hint on surface      | 4.9:1     | 5.3:1     |
+| brand on surface          | 4.6:1     | 7.4:1     |
+| text-secondary on hover   | 5.7:1     | 7.2:1     |
+
+**Bug fixed in the same pass.** Dark-mode table rows were rendering in Material's own
+neutral `#424242` — lighter than our surface and a different hue — while `:hover`
+resolved to our darker hover token. The result: hovering a row made it go *darker* than
+the table, and the grid read as grey against near-black cards. Material paints tables
+from `--mat-table-background-color`, which its M2 dark palette sets to that grey;
+`styles.scss` now overrides that token and makes rows transparent so the surface shows
+through. Overriding the token is more reliable than out-specifying the cascade.
+
+## 0.9 Loading states: the gear
+
+The app has **one** loading indicator — a turning gear (`LucideCog`), shown inside the
+button whose action is running. There is no other spinner; if you add a loading state
+anywhere, use this.
+
+`shared/components/busy-icon/` projects the button's normal icon and swaps it for the
+gear while busy:
+
+```html
+<button mat-raised-button [disabled]="busy.any" [attr.aria-busy]="busy.is('create')">
+  <app-busy-icon [busy]="busy.is('create')">
+    <svg lucidePlus size="16" aria-hidden="true"></svg>
+  </app-busy-icon>
+  <span>{{ i18n.t('addProject') }}</span>
+</button>
+```
+
+`shared/utils/busy-state.ts` tracks **which single action** is running, keyed by record
+id, so exactly one button turns rather than every button on the screen. It clears in a
+`finally` — a rejected save must not leave the gear turning with the UI disabled forever.
+There is a test for that.
+
+**This required making the app asynchronous.** A gear needs something to wait on, and the
+store wrote to localStorage synchronously. `core/data/erp-gateway.ts` is now the seam:
+every write returns a Promise, and store mutations are `async`. Replacing localStorage
+with `HttpClient` means rewriting that one class — no store method and no component
+changes shape.
+
+Mutations are **optimistic**: the signal updates before the commit is awaited, so the
+table shows the change immediately while the button spins. A real backend must roll the
+signal back or surface the error if the commit fails; the gateway currently swallows it.
+
+> **`MOCK_LATENCY_MS = 450` in `erp-gateway.ts` is artificial and must be deleted when
+> the real API lands.** localStorage returns within a frame, so without it the busy state
+> is real but invisible — reviewers cannot see how saving will feel and the loading UI
+> cannot be demonstrated. It is the only fake timing in the app. Set it to `0` to remove
+> the delay immediately.
+
+Accessibility: the acted-on button carries `aria-busy="true"`, and every competing action
+button is disabled for the duration, which also prevents double-submits. Under
+`prefers-reduced-motion` the gear steps round in eight discrete clicks instead of
+sweeping — it still reads as "working", without the smooth rotation that triggers
+vestibular discomfort.
+
+## 0.10 Responsive & mobile
+
+Audited at 375px (iPhone SE), 390px (iPhone 14), 768px and 1024px, across all nine
+routes, in both languages and both themes.
+
+| Behaviour            | Result                                                            |
+| -------------------- | ----------------------------------------------------------------- |
+| Sideways page panning | None, on any route at any width                                   |
+| Sidebar              | Fixed ≥1024px; overlay drawer with a hamburger below              |
+| Wide tables          | Scroll inside their own card                                      |
+| Dialogs              | Single column below 560px; `94vw` max width                     |
+| Tap targets          | All ≥44×44 on touch devices                                      |
+| Search box           | Hidden below 1024px (it is disabled in this phase anyway)          |
+
+**Bug found and fixed during the audit.** On `/projects` and `/equipment` the entire page
+panned sideways on a phone — toolbar, header and all — by ~594px. Material's drawer
+content is `overflow: auto`, and a wide table inside a card leaked its width into that
+container even though `.table-scroll` was scrolling correctly on its own. `.shell-content`
+is now explicitly `overflow-x: hidden`: the shell scrolls vertically only, and horizontal
+scrolling belongs to `.table-scroll` and nowhere else.
+
+> Worth knowing for the audit method: `element.scrollLeft = 9999` **succeeds even on
+> `overflow: hidden`**, so it cannot be used to detect whether a user can pan. The real
+> test is computed `overflow-x` being `auto`/`scroll` *while* `scrollWidth > clientWidth`.
+> An earlier pass using `scrollLeft` reported false results in both directions.
+
+Also adjusted: page gutters drop from 24px to 16px below 600px (24px each side costs 13%
+of a 375px screen), and text buttons get a 44px minimum height under
+`@media (pointer: coarse)` — Material ships them at 36px, which is below a comfortable
+tap target. Icon buttons were already 48px.
+
+### Tables become card lists on small screens
+
+Every record table now switches to a **stacked card list below 700px** — one card per
+record, each field labelled next to its own value. Converted: Inspections, Rentals,
+Transport, Projects, Equipment.
+
+A table row on a 375px screen forces sideways panning to read one record, and the column
+header — the thing that says what a value *means* — scrolls out of view. Stacking removes
+both problems.
+
+- `core/services/layout.ts` exposes `isCompact()` (700px, chosen because that is where
+  the widest table stops being readable, not because it is a device boundary).
+- `shared/components/record-card/` renders one record: title, optional code subtitle, a
+  `fields` array, and slots `[cardStatus]`, `[cardActions]` plus default content for
+  richer pieces like a meter bar. The `card` prefix on the slots avoids colliding with
+  real input names — `status` is already an input on `app-status-chip`.
+- Templates use `@if (layout.isCompact())`, **not** a CSS `display` swap, so only one
+  layout is ever in the DOM. Assistive technology never meets each record twice.
+- Equipment hides its detail panel in compact mode: the card already carries every field
+  the panel showed, so keeping both would duplicate the record.
+
+Verified at 375/390/768/1440px across all nine routes, in both languages and both themes:
+cards below 700px, tables above, no sideways panning anywhere, no console errors.
+
+**Toolbar at 375px.** The five controls totalled ~382px and clipped the primary action's
+label. The notifications bell is hidden below 600px — it is non-functional in this phase,
+so dropping it costs nothing and buys back the 48px that keeps "New Request" readable.
+
+**Still open.** Requests already uses cards at every width, so it needed no conversion,
+but its stage tracker is cramped on a phone. Dashboard and Costs are chart/meter screens
+and were already fluid.
+
 **Known cosmetic limits**
 
 - The toolbar search box and notifications bell are rendered **disabled**, because

@@ -266,7 +266,10 @@ export const translations = {
 
 export type TranslationKey = keyof (typeof translations)['en'];
 
-export const moduleLabels: Record<Language, Record<ModuleId, { label: string; caption: string }>> = {
+export const moduleLabels: Record<
+  Language,
+  Record<ModuleId, { label: string; caption: string }>
+> = {
   en: {
     dashboard: { label: 'Dashboard', caption: 'Executive view' },
     requests: { label: 'Requests', caption: 'Request and receive flow' },

@@ -4,8 +4,17 @@
     [title]="i18n.t('requestFlowTitle')"
     [subtitle]="i18n.t('requestFlowNote')"
   >
-    <button mat-raised-button color="primary" type="button" (click)="openCreate()">
-      <svg lucidePlus size="16" aria-hidden="true"></svg>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      [disabled]="busy.any"
+      [attr.aria-busy]="busy.is('create')"
+      (click)="openCreate()"
+    >
+      <app-busy-icon [busy]="busy.is('create')">
+        <svg lucidePlus size="16" aria-hidden="true"></svg>
+      </app-busy-icon>
       <span>{{ i18n.t('newRequest') }}</span>
     </button>
   </app-page-header>
@@ -68,20 +77,28 @@
                   <button
                     mat-icon-button
                     type="button"
+                    [disabled]="busy.any"
+                    [attr.aria-busy]="busy.is(request.id)"
                     [attr.aria-label]="i18n.t('edit') + ' ' + request.id"
                     [matTooltip]="i18n.t('edit')"
                     (click)="openEdit(request)"
                   >
-                    <svg lucidePencil size="17" aria-hidden="true"></svg>
+                    <app-busy-icon [busy]="busy.is(request.id)" [size]="17">
+                      <svg lucidePencil size="17" aria-hidden="true"></svg>
+                    </app-busy-icon>
                   </button>
                   <button
                     mat-icon-button
                     type="button"
+                    [disabled]="busy.any"
+                    [attr.aria-busy]="busy.is('delete:' + request.id)"
                     [attr.aria-label]="i18n.t('delete') + ' ' + request.id"
                     [matTooltip]="i18n.t('delete')"
                     (click)="remove(request)"
                   >
-                    <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                    <app-busy-icon [busy]="busy.is('delete:' + request.id)" [size]="17">
+                      <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                    </app-busy-icon>
                   </button>
                 </footer>
               </article>
@@ -95,10 +112,7 @@
 
     @if (selectedRequest(); as request) {
       <div class="checks-column">
-        <app-section-card
-          [eyebrow]="i18n.code(request.id)"
-          [title]="i18n.t('beforeRequestChecks')"
-        >
+        <app-section-card [eyebrow]="i18n.code(request.id)" [title]="i18n.t('beforeRequestChecks')">
           <app-request-checklist [checks]="request.checks" />
         </app-section-card>
 

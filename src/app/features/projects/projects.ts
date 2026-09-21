@@ -9,27 +9,30 @@ import { firstValueFrom } from 'rxjs';
 import type { ProjectRecord } from '../../core/models';
 import { ErpStore } from '../../core/services/erp-store';
 import { I18nService } from '../../core/services/i18n';
+import { LayoutService } from '../../core/services/layout';
+import { BusyIcon } from '../../shared/components/busy-icon/busy-icon';
 import { EmptyState } from '../../shared/components/empty-state/empty-state';
 import { MeterBar } from '../../shared/components/meter-bar/meter-bar';
 import { PageHeader } from '../../shared/components/page-header/page-header';
+import { RecordCard, type RecordField } from '../../shared/components/record-card/record-card';
 import { SectionCard } from '../../shared/components/section-card/section-card';
 import { StatusChip } from '../../shared/components/status-chip/status-chip';
 import { ConfirmService } from '../../shared/services/confirm';
-import {
-  ProjectFormDialog,
-  type ProjectFormData,
-} from './project-form-dialog/project-form-dialog';
+import { BusyState } from '../../shared/utils/busy-state';
+import { ProjectFormDialog, type ProjectFormData } from './project-form-dialog/project-form-dialog';
 
 @Component({
   selector: 'app-projects',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    BusyIcon,
     EmptyState,
     MatButtonModule,
     MatTableModule,
     MatTooltipModule,
     MeterBar,
     PageHeader,
+    RecordCard,
     SectionCard,
     StatusChip,
     LucidePencil,
@@ -45,6 +48,10 @@ export class Projects {
 
   protected readonly i18n = inject(I18nService);
   protected readonly store = inject(ErpStore);
+  protected readonly layout = inject(LayoutService);
+
+  /** Which button is mid-save, so only that one turns its gear. */
+  protected readonly busy = new BusyState();
 
   protected readonly columns = [
     'name',
@@ -56,6 +63,27 @@ export class Projects {
     'linked',
     'actions',
   ] as const;
+
+  protected fieldsFor(project: ProjectRecord): RecordField[] {
+    return [
+      { label: this.i18n.t('client'), value: this.i18n.text(project.client) },
+      { label: this.i18n.t('manager'), value: this.i18n.text(project.manager) },
+      { label: this.i18n.t('budget'), value: this.i18n.formatMoney(project.budget), numeric: true },
+      {
+        label: this.i18n.t('totalSpend'),
+        value: this.i18n.formatMoney(this.totalSpend(project)),
+        numeric: true,
+      },
+      {
+        label: this.i18n.t('equipmentAssigned'),
+        value: this.i18n.formatInteger(this.store.equipmentCountForProject(project.name)),
+      },
+      {
+        label: this.i18n.t('requestsLinked'),
+        value: this.i18n.formatInteger(this.store.requestCountForProject(project.name)),
+      },
+    ];
+  }
 
   protected totalSpend(project: ProjectRecord): number {
     return project.equipmentSpend + project.transportSpend + project.extraSpend;
@@ -84,7 +112,7 @@ export class Projects {
     const result = await this.openDialog({ mode: 'create', project: blank });
 
     if (result) {
-      this.store.createProject(result);
+      await this.busy.run('create', () => this.store.createProject(result));
     }
   }
 
@@ -92,13 +120,13 @@ export class Projects {
     const result = await this.openDialog({ mode: 'edit', project });
 
     if (result) {
-      this.store.updateProject(project.code, result);
+      await this.busy.run(project.code, () => this.store.updateProject(project.code, result));
     }
   }
 
   protected async remove(project: ProjectRecord): Promise<void> {
     if (await this.confirmService.confirmDelete(this.i18n.text(project.name))) {
-      this.store.deleteProject(project.code);
+      await this.busy.run(`delete:${project.code}`, () => this.store.deleteProject(project.code));
     }
   }
 

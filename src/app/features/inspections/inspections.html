@@ -8,9 +8,30 @@
   <app-section-card
     [eyebrow]="i18n.t('inspectionRecords')"
     [title]="i18n.t('inspectionTitle')"
-    flush
+    [flush]="!layout.isCompact()"
   >
-    @if (store.inspections().length) {
+    @if (!store.inspections().length) {
+      <app-empty-state [title]="i18n.t('noRecords')" />
+    } @else if (layout.isCompact()) {
+      <!--
+        Narrow screens get one card per inspection. This is the module that is
+        actually used on-site from a phone, so the record has to be readable
+        without panning sideways.
+      -->
+      <ul class="record-list">
+        @for (inspection of store.inspections(); track inspection.asset) {
+          <li>
+            <app-record-card [title]="i18n.text(inspection.asset)" [fields]="fieldsFor(inspection)">
+              <app-status-chip
+                cardStatus
+                [status]="inspection.status"
+                [label]="i18n.text(inspection.status)"
+              />
+            </app-record-card>
+          </li>
+        }
+      </ul>
+    } @else {
       <div class="table-scroll">
         <table mat-table [dataSource]="store.inspections()" class="inspections-table">
           <ng-container matColumnDef="asset">
@@ -67,8 +88,6 @@
           <tr mat-row *matRowDef="let row; columns: columns"></tr>
         </table>
       </div>
-    } @else {
-      <app-empty-state [title]="i18n.t('noRecords')" />
     }
   </app-section-card>
 </div>

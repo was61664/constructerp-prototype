@@ -1,11 +1,7 @@
 export type Ownership = 'Owned' | 'External Rental';
 
 export type EquipmentStatus =
-  | 'Working'
-  | 'Idle'
-  | 'In Transit'
-  | 'Inspection Due'
-  | 'Return Scheduled';
+  'Working' | 'Idle' | 'In Transit' | 'Inspection Due' | 'Return Scheduled';
 
 export interface Equipment {
   id: string;

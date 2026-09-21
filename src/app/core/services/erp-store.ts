@@ -1,6 +1,6 @@
-import { DOCUMENT } from '@angular/common';
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 
+import { ErpGateway } from '../data/erp-gateway';
 import {
   SEED_EQUIPMENT,
   SEED_INSPECTIONS,
@@ -32,22 +32,29 @@ const STORAGE_KEYS = {
  * own. This replaces the old `dataVersion` counter, which existed only because
  * the data lived in plain arrays that could not notify anything.
  *
- * Persistence is localStorage. Swapping in a real API means changing the
- * mutation methods here and nothing in the feature components.
+ * Every mutation is `async` and awaits ErpGateway. That is what lets the UI
+ * show a busy state on the button that triggered the action, and it means the
+ * components are already written against an asynchronous backend: replacing
+ * localStorage with HTTP touches ErpGateway only.
+ *
+ * The signal is updated BEFORE the commit is awaited, so the table reflects the
+ * change immediately and the button spins while it is being written. If the
+ * commit throws, the gateway swallows it — acceptable for a prototype, but a
+ * real implementation must roll the signal back or surface the failure.
  */
 @Injectable({ providedIn: 'root' })
 export class ErpStore {
-  private readonly document = inject(DOCUMENT);
+  private readonly gateway = inject(ErpGateway);
 
   // --- Editable entities ----------------------------------------------------
   private readonly projectsSignal = signal<ProjectRecord[]>(
-    this.restore(STORAGE_KEYS.projects, SEED_PROJECTS),
+    this.gateway.read(STORAGE_KEYS.projects, SEED_PROJECTS),
   );
   private readonly equipmentSignal = signal<Equipment[]>(
-    this.restore(STORAGE_KEYS.equipment, SEED_EQUIPMENT),
+    this.gateway.read(STORAGE_KEYS.equipment, SEED_EQUIPMENT),
   );
   private readonly requestsSignal = signal<EquipmentRequest[]>(
-    this.restore(STORAGE_KEYS.requests, SEED_REQUESTS),
+    this.gateway.read(STORAGE_KEYS.requests, SEED_REQUESTS),
   );
 
   readonly projects = this.projectsSignal.asReadonly();
@@ -110,55 +117,67 @@ export class ErpStore {
     this.equipment().filter((item) => item.status === 'Idle' || item.status === 'Inspection Due'),
   );
 
-  constructor() {
-    effect(() => this.persist(STORAGE_KEYS.projects, this.projects()));
-    effect(() => this.persist(STORAGE_KEYS.equipment, this.equipment()));
-    effect(() => this.persist(STORAGE_KEYS.requests, this.requests()));
-  }
-
   // --- Projects -------------------------------------------------------------
 
-  createProject(project: ProjectRecord): void {
+  async createProject(project: ProjectRecord): Promise<void> {
     this.projectsSignal.update((projects) => [
       project,
       ...projects.filter((item) => item.code !== project.code),
     ]);
+
+    await this.commitProjects();
   }
 
-  updateProject(originalCode: string, project: ProjectRecord): void {
+  async updateProject(originalCode: string, project: ProjectRecord): Promise<void> {
     this.projectsSignal.update((projects) =>
       projects.map((item) => (item.code === originalCode ? project : item)),
     );
+
+    await this.commitProjects();
   }
 
-  deleteProject(code: string): void {
+  async deleteProject(code: string): Promise<void> {
     this.projectsSignal.update((projects) => projects.filter((item) => item.code !== code));
+
+    await this.commitProjects();
   }
 
   nextProjectCode(): string {
-    return `PRJ-${this.nextSequence(this.projects().map((project) => project.code), 'PRJ-')}`;
+    return `PRJ-${this.nextSequence(
+      this.projects().map((project) => project.code),
+      'PRJ-',
+    )}`;
   }
 
   // --- Equipment ------------------------------------------------------------
 
-  createEquipment(item: Equipment): void {
-    this.equipmentSignal.update((fleet) => [item, ...fleet.filter((asset) => asset.id !== item.id)]);
+  async createEquipment(item: Equipment): Promise<void> {
+    this.equipmentSignal.update((fleet) => [
+      item,
+      ...fleet.filter((asset) => asset.id !== item.id),
+    ]);
     this.selectEquipment(item.id);
+
+    await this.commitEquipment();
   }
 
-  updateEquipment(originalId: string, item: Equipment): void {
+  async updateEquipment(originalId: string, item: Equipment): Promise<void> {
     this.equipmentSignal.update((fleet) =>
       fleet.map((asset) => (asset.id === originalId ? item : asset)),
     );
     this.selectEquipment(item.id);
+
+    await this.commitEquipment();
   }
 
-  deleteEquipment(id: string): void {
+  async deleteEquipment(id: string): Promise<void> {
     this.equipmentSignal.update((fleet) => fleet.filter((asset) => asset.id !== id));
 
     if (this.selectedEquipmentId() === id) {
       this.selectEquipment(this.equipment()[0]?.id ?? '');
     }
+
+    await this.commitEquipment();
   }
 
   selectEquipment(id: string): void {
@@ -166,30 +185,42 @@ export class ErpStore {
   }
 
   nextEquipmentId(): string {
-    return `EQ-${this.nextSequence(this.equipment().map((item) => item.id), 'EQ-')}`;
+    return `EQ-${this.nextSequence(
+      this.equipment().map((item) => item.id),
+      'EQ-',
+    )}`;
   }
 
   // --- Requests -------------------------------------------------------------
 
-  createRequest(request: EquipmentRequest): void {
+  async createRequest(request: EquipmentRequest): Promise<void> {
     this.requestsSignal.update((requests) => [
       request,
       ...requests.filter((item) => item.id !== request.id),
     ]);
+
+    await this.commitRequests();
   }
 
-  updateRequest(originalId: string, request: EquipmentRequest): void {
+  async updateRequest(originalId: string, request: EquipmentRequest): Promise<void> {
     this.requestsSignal.update((requests) =>
       requests.map((item) => (item.id === originalId ? request : item)),
     );
+
+    await this.commitRequests();
   }
 
-  deleteRequest(id: string): void {
+  async deleteRequest(id: string): Promise<void> {
     this.requestsSignal.update((requests) => requests.filter((item) => item.id !== id));
+
+    await this.commitRequests();
   }
 
   nextRequestId(): string {
-    return `REQ-${this.nextSequence(this.requests().map((request) => request.id), 'REQ-')}`;
+    return `REQ-${this.nextSequence(
+      this.requests().map((request) => request.id),
+      'REQ-',
+    )}`;
   }
 
   // --- Cross-entity lookups -------------------------------------------------
@@ -211,37 +242,16 @@ export class ErpStore {
 
   // --- Persistence ----------------------------------------------------------
 
-  private restore<T>(key: string, fallback: readonly T[]): T[] {
-    const stored = this.safeStorage()?.getItem(key);
-
-    if (!stored) {
-      return [...fallback];
-    }
-
-    try {
-      const parsed: unknown = JSON.parse(stored);
-
-      return Array.isArray(parsed) ? (parsed as T[]) : [...fallback];
-    } catch {
-      return [...fallback];
-    }
+  private commitProjects(): Promise<void> {
+    return this.gateway.commit(STORAGE_KEYS.projects, this.projects());
   }
 
-  private persist<T>(key: string, value: readonly T[]): void {
-    // Quota errors and disabled storage must not take the app down.
-    try {
-      this.safeStorage()?.setItem(key, JSON.stringify(value));
-    } catch {
-      // Ignored by design: this is prototype persistence, not a system of record.
-    }
+  private commitEquipment(): Promise<void> {
+    return this.gateway.commit(STORAGE_KEYS.equipment, this.equipment());
   }
 
-  private safeStorage(): Storage | undefined {
-    try {
-      return this.document.defaultView?.localStorage ?? undefined;
-    } catch {
-      return undefined;
-    }
+  private commitRequests(): Promise<void> {
+    return this.gateway.commit(STORAGE_KEYS.requests, this.requests());
   }
 
   private nextSequence(values: readonly string[], prefix: string): string {

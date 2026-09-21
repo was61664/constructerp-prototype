@@ -4,14 +4,82 @@
     [title]="i18n.t('projectsTitle')"
     [subtitle]="i18n.t('projectPortfolio')"
   >
-    <button mat-raised-button color="primary" type="button" (click)="openCreate()">
-      <svg lucidePlus size="16" aria-hidden="true"></svg>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      [disabled]="busy.any"
+      [attr.aria-busy]="busy.is('create')"
+      (click)="openCreate()"
+    >
+      <app-busy-icon [busy]="busy.is('create')">
+        <svg lucidePlus size="16" aria-hidden="true"></svg>
+      </app-busy-icon>
       <span>{{ i18n.t('addProject') }}</span>
     </button>
   </app-page-header>
 
-  <app-section-card [eyebrow]="i18n.t('projectPortfolio')" [title]="i18n.t('projectsTitle')" flush>
-    @if (store.projects().length) {
+  <app-section-card
+    [eyebrow]="i18n.t('projectPortfolio')"
+    [title]="i18n.t('projectsTitle')"
+    [flush]="!layout.isCompact()"
+  >
+    @if (!store.projects().length) {
+      <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
+    } @else if (layout.isCompact()) {
+      <ul class="record-list">
+        @for (project of store.projects(); track project.code) {
+          <li>
+            <app-record-card
+              [title]="i18n.text(project.name)"
+              [subtitle]="i18n.code(project.code)"
+              [subtitleIsCode]="true"
+              [fields]="fieldsFor(project)"
+            >
+              <app-status-chip
+                cardStatus
+                [status]="project.status"
+                [label]="i18n.text(project.status)"
+              />
+
+              <app-meter-bar
+                [label]="i18n.t('costProgress')"
+                [value]="spendPercent(project)"
+                [valueLabel]="i18n.formatPercent(spendPercent(project))"
+                [dangerAbove]="90"
+              />
+
+              <button
+                cardActions
+                mat-icon-button
+                type="button"
+                [disabled]="busy.any"
+                [attr.aria-busy]="busy.is(project.code)"
+                [attr.aria-label]="i18n.t('edit') + ' ' + i18n.text(project.name)"
+                (click)="openEdit(project)"
+              >
+                <app-busy-icon [busy]="busy.is(project.code)" [size]="17">
+                  <svg lucidePencil size="17" aria-hidden="true"></svg>
+                </app-busy-icon>
+              </button>
+              <button
+                cardActions
+                mat-icon-button
+                type="button"
+                [disabled]="busy.any"
+                [attr.aria-busy]="busy.is('delete:' + project.code)"
+                [attr.aria-label]="i18n.t('delete') + ' ' + i18n.text(project.name)"
+                (click)="remove(project)"
+              >
+                <app-busy-icon [busy]="busy.is('delete:' + project.code)" [size]="17">
+                  <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                </app-busy-icon>
+              </button>
+            </app-record-card>
+          </li>
+        }
+      </ul>
+    } @else {
       <div class="table-scroll">
         <table mat-table [dataSource]="store.projects()" class="projects-table">
           <ng-container matColumnDef="name">
@@ -90,20 +158,28 @@
               <button
                 mat-icon-button
                 type="button"
+                [disabled]="busy.any"
+                [attr.aria-busy]="busy.is(project.code)"
                 [attr.aria-label]="i18n.t('edit') + ' ' + i18n.text(project.name)"
                 [matTooltip]="i18n.t('edit')"
                 (click)="openEdit(project)"
               >
-                <svg lucidePencil size="17" aria-hidden="true"></svg>
+                <app-busy-icon [busy]="busy.is(project.code)" [size]="17">
+                  <svg lucidePencil size="17" aria-hidden="true"></svg>
+                </app-busy-icon>
               </button>
               <button
                 mat-icon-button
                 type="button"
+                [disabled]="busy.any"
+                [attr.aria-busy]="busy.is('delete:' + project.code)"
                 [attr.aria-label]="i18n.t('delete') + ' ' + i18n.text(project.name)"
                 [matTooltip]="i18n.t('delete')"
                 (click)="remove(project)"
               >
-                <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                <app-busy-icon [busy]="busy.is('delete:' + project.code)" [size]="17">
+                  <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                </app-busy-icon>
               </button>
             </td>
           </ng-container>
@@ -112,8 +188,6 @@
           <tr mat-row *matRowDef="let row; columns: columns"></tr>
         </table>
       </div>
-    } @else {
-      <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
     }
   </app-section-card>
 </div>

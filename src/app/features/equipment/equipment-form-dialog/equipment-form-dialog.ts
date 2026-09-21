@@ -57,10 +57,7 @@ export class EquipmentFormDialog {
     ownership: [this.data.equipment.ownership],
     project: [this.data.equipment.project],
     status: [this.data.equipment.status],
-    utilization: [
-      this.data.equipment.utilization,
-      [Validators.min(0), Validators.max(100)],
-    ],
+    utilization: [this.data.equipment.utilization, [Validators.min(0), Validators.max(100)]],
     dailyCost: [this.data.equipment.dailyCost, Validators.min(0)],
     nextAction: [this.data.equipment.nextAction],
   });

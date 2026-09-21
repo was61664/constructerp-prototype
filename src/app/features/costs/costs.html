@@ -38,12 +38,16 @@
             <div class="cost-bars">
               <app-meter-bar
                 [label]="i18n.t('equipmentSpend')"
-                [value]="share(line.equipment, lineTotal(line.equipment, line.transport, line.extras))"
+                [value]="
+                  share(line.equipment, lineTotal(line.equipment, line.transport, line.extras))
+                "
                 [valueLabel]="i18n.formatMoney(line.equipment)"
               />
               <app-meter-bar
                 [label]="i18n.t('transportSpend')"
-                [value]="share(line.transport, lineTotal(line.equipment, line.transport, line.extras))"
+                [value]="
+                  share(line.transport, lineTotal(line.equipment, line.transport, line.extras))
+                "
                 [valueLabel]="i18n.formatMoney(line.transport)"
               />
               <app-meter-bar
