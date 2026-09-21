@@ -1,0 +1,121 @@
+@use 'tokens' as *;
+
+.requests-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: $space-lg;
+  align-items: start;
+}
+
+@media (max-width: 1280px) {
+  .requests-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.request-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.request-card {
+  display: flex;
+  align-items: stretch;
+  border: $border;
+  border-radius: $radius;
+  background: $surface;
+  transition: border-color $transition-fast;
+
+  &:hover {
+    border-color: $border-color-strong;
+  }
+}
+
+.request-card-selected {
+  border-color: $brand-primary;
+  background: $brand-primary-light;
+}
+
+.request-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+  padding: $space-md;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.request-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-md;
+}
+
+.request-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-size: 15px;
+    font-weight: 700;
+    color: $text-primary;
+  }
+}
+
+.muted {
+  font-size: 12px;
+  color: $text-hint;
+}
+
+.request-facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: $space-sm $space-md;
+
+  dt {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $text-hint;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+  }
+}
+
+.request-purpose {
+  font-size: 13px;
+  color: $text-secondary;
+}
+
+.request-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  padding: $space-sm;
+  border-inline-start: $border;
+  flex-shrink: 0;
+}
+
+.checks-column {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}

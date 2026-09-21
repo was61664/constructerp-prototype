@@ -1,0 +1,56 @@
+@use 'tokens' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.meter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $space-md;
+}
+
+.meter-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-primary;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meter-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: $text-secondary;
+  flex-shrink: 0;
+}
+
+.meter-track {
+  block-size: 8px;
+  background: $status-neutral-bg;
+  border-radius: $radius-sm;
+  overflow: hidden;
+}
+
+.meter-fill {
+  block-size: 100%;
+  border-radius: $radius-sm;
+  transition: inline-size $transition;
+}
+
+.tone-normal {
+  background: $brand-primary;
+}
+
+.tone-strong {
+  background: $brand-primary-dark;
+}
+
+.tone-danger {
+  background: $status-danger-fg;
+}

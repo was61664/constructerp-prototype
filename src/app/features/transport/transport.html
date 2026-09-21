@@ -1,0 +1,93 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="i18n.t('transportation')"
+    [title]="i18n.t('transportPlanning')"
+    [subtitle]="i18n.t('transportNote')"
+  />
+
+  <div class="grid grid-halves transport-grid">
+    <app-section-card
+      [eyebrow]="i18n.t('transportation')"
+      [title]="i18n.t('transportPlanning')"
+      class="span-wide"
+      flush
+    >
+      @if (store.transportMoves().length) {
+        <div class="table-scroll">
+          <table mat-table [dataSource]="store.transportMoves()" class="transport-table">
+            <ng-container matColumnDef="route">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('route') }}</th>
+              <td mat-cell *matCellDef="let move">
+                <span class="route-cell">
+                  <span class="route-icon" aria-hidden="true">
+                    <svg lucideMapPinned size="16"></svg>
+                  </span>
+                  <span class="route-text">
+                    <strong>
+                      {{ i18n.text(move.origin) }} → {{ i18n.text(move.destination) }}
+                    </strong>
+                    <span class="muted">{{ i18n.text(move.asset) }}</span>
+                  </span>
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="kind">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('moveType') }}</th>
+              <td mat-cell *matCellDef="let move">{{ i18n.text(move.kind) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="project">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('project') }}</th>
+              <td mat-cell *matCellDef="let move">{{ i18n.text(move.project) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="cost">
+              <th mat-header-cell *matHeaderCellDef class="cell-numeric">{{ i18n.t('cost') }}</th>
+              <td mat-cell *matCellDef="let move" class="cell-numeric">
+                {{ i18n.formatMoney(move.cost) }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="schedule">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('schedule') }}</th>
+              <td mat-cell *matCellDef="let move">{{ i18n.formatDateLabel(move.schedule) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('status') }}</th>
+              <td mat-cell *matCellDef="let move">
+                <app-status-chip [status]="move.status" [label]="i18n.text(move.status)" />
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columns"></tr>
+            <tr mat-row *matRowDef="let row; columns: columns"></tr>
+          </table>
+        </div>
+      } @else {
+        <app-empty-state [title]="i18n.t('noRecords')" />
+      }
+    </app-section-card>
+
+    <app-section-card [eyebrow]="i18n.t('costSplit')" [title]="i18n.t('transportShare')">
+      <div class="share">
+        <p class="share-value text-numeric">
+          {{ i18n.formatPercent(store.transportSharePercent()) }}
+        </p>
+        <app-meter-bar
+          [label]="i18n.t('transportDistribution')"
+          [value]="store.transportSharePercent()"
+          [valueLabel]="i18n.formatPercent(store.transportSharePercent())"
+        />
+        <dl class="share-facts">
+          <div>
+            <dt>{{ i18n.t('transportSpend') }}</dt>
+            <dd class="text-numeric">{{ i18n.formatMoney(totalCost()) }}</dd>
+          </div>
+        </dl>
+        <p class="share-note">{{ i18n.t('transportNote') }}</p>
+      </div>
+    </app-section-card>
+  </div>
+</div>

@@ -1,0 +1,115 @@
+@use 'tokens' as *;
+
+.equipment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(300px, 1fr);
+  gap: $space-lg;
+  align-items: start;
+}
+
+// The register carries eight columns and needs ~900px. Below this the detail
+// panel moves under the table rather than squeezing it into a scroll.
+@media (max-width: 1500px) {
+  .equipment-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.equipment-table {
+  inline-size: 100%;
+  min-inline-size: 900px;
+}
+
+.selectable-row {
+  cursor: pointer;
+}
+
+.row-selected {
+  background: $surface-selected;
+
+  // Flat marker on the inline start edge, matching the sidebar's active item.
+  td:first-child {
+    box-shadow: inset 3px 0 0 0 $brand-primary;
+  }
+}
+
+html[dir='rtl'] .row-selected td:first-child {
+  box-shadow: inset -3px 0 0 0 $brand-primary;
+}
+
+.primary-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.muted {
+  color: $text-hint;
+  font-size: 12px;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.detail-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+
+  > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-md;
+    padding-block-end: $space-sm;
+    border-bottom: $border;
+  }
+
+  > div:last-child {
+    border-bottom: 0;
+    padding-block-end: 0;
+  }
+
+  dt {
+    font-size: 12px;
+    color: $text-secondary;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+    text-align: end;
+  }
+}
+
+.next-action {
+  padding: $space-md;
+  background: $surface-sunken;
+  border: $border;
+  border-radius: $radius;
+
+  p {
+    font-size: 13px;
+    color: $text-primary;
+  }
+}
+
+.next-action-label {
+  display: block;
+  margin-block-end: $space-xs;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-hint;
+}

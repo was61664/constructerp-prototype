@@ -1,0 +1,59 @@
+@use 'tokens' as *;
+
+// Shared layout for the entity form dialogs (project, equipment, request).
+// Kept here rather than duplicated in three component stylesheets.
+@mixin dialog-form {
+  .hint {
+    margin-block-end: $space-md;
+    color: $text-hint;
+    font-size: 12px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $space-sm $space-md;
+  }
+
+  .span-2 {
+    grid-column: span 2;
+  }
+
+  // Single column on narrow screens; the 2-up grid stops being readable.
+  @media (max-width: 560px) {
+    .form-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .span-2 {
+      grid-column: span 1;
+    }
+  }
+
+  mat-dialog-content {
+    padding-block-start: $space-sm;
+  }
+
+  mat-dialog-actions {
+    gap: $space-sm;
+    padding: $space-md $space-lg $space-lg;
+    border-top: $border;
+  }
+
+  .section-label {
+    grid-column: 1 / -1;
+    margin-block-start: $space-sm;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $text-hint;
+  }
+
+  .check-list {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: $space-xs $space-md;
+  }
+}

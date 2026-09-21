@@ -1,0 +1,114 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="i18n.t('requestFlow')"
+    [title]="i18n.t('requestFlowTitle')"
+    [subtitle]="i18n.t('requestFlowNote')"
+  >
+    <button mat-raised-button color="primary" type="button" (click)="openCreate()">
+      <svg lucidePlus size="16" aria-hidden="true"></svg>
+      <span>{{ i18n.t('newRequest') }}</span>
+    </button>
+  </app-page-header>
+
+  <div class="requests-layout">
+    <app-section-card [eyebrow]="i18n.t('activeRequests')" [title]="i18n.t('processSteps')">
+      @if (store.requests().length) {
+        <ul class="request-list">
+          @for (request of store.requests(); track request.id) {
+            <li>
+              <article
+                class="request-card"
+                [class.request-card-selected]="request.id === selectedRequest()?.id"
+              >
+                <button class="request-main" type="button" (click)="select(request)">
+                  <header class="request-head">
+                    <div class="request-title">
+                      <strong>{{ i18n.text(request.equipment) }}</strong>
+                      <span class="muted code">{{ i18n.code(request.id) }}</span>
+                    </div>
+                    <app-status-chip
+                      [status]="request.status"
+                      [label]="i18n.text(request.status)"
+                    />
+                  </header>
+
+                  <app-request-stage-tracker [currentStage]="request.stage" />
+
+                  <dl class="request-facts">
+                    <div>
+                      <dt>{{ i18n.t('project') }}</dt>
+                      <dd>{{ i18n.text(request.project) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ i18n.t('requestedBy') }}</dt>
+                      <dd>{{ i18n.text(request.requestedBy) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ i18n.t('requiredDate') }}</dt>
+                      <dd>{{ i18n.formatDateLabel(request.requiredDate) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ i18n.t('returnDate') }}</dt>
+                      <dd>{{ i18n.formatDateLabel(request.returnDate) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ i18n.t('location') }}</dt>
+                      <dd>{{ i18n.text(request.location) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ i18n.t('estimatedCost') }}</dt>
+                      <dd class="text-numeric">{{ i18n.formatMoney(request.estimatedCost) }}</dd>
+                    </div>
+                  </dl>
+
+                  <p class="request-purpose">{{ i18n.text(request.purpose) }}</p>
+                </button>
+
+                <footer class="request-actions">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [attr.aria-label]="i18n.t('edit') + ' ' + request.id"
+                    [matTooltip]="i18n.t('edit')"
+                    (click)="openEdit(request)"
+                  >
+                    <svg lucidePencil size="17" aria-hidden="true"></svg>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [attr.aria-label]="i18n.t('delete') + ' ' + request.id"
+                    [matTooltip]="i18n.t('delete')"
+                    (click)="remove(request)"
+                  >
+                    <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                  </button>
+                </footer>
+              </article>
+            </li>
+          }
+        </ul>
+      } @else {
+        <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
+      }
+    </app-section-card>
+
+    @if (selectedRequest(); as request) {
+      <div class="checks-column">
+        <app-section-card
+          [eyebrow]="i18n.code(request.id)"
+          [title]="i18n.t('beforeRequestChecks')"
+        >
+          <app-request-checklist [checks]="request.checks" />
+        </app-section-card>
+
+        <app-section-card
+          [eyebrow]="i18n.code(request.id)"
+          [title]="i18n.t('beforeReceivingChecks')"
+        >
+          <app-request-checklist [checks]="request.receivingChecks" />
+        </app-section-card>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,84 @@
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.toolbar {
+  // White toolbar with a hairline under it, not a coloured app bar — the
+  // coloured bar reads as an older Material era than this brief targets.
+  background: $surface;
+  border-bottom: $border;
+  block-size: $toolbar-height;
+  padding-inline: $space-md;
+  gap: $space-sm;
+  box-shadow: none;
+}
+
+.menu-button {
+  display: none; // Only needed once the drawer goes into over mode.
+}
+
+.spacer {
+  flex: 1;
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  inline-size: 100%;
+  max-inline-size: 420px;
+}
+
+.search-icon {
+  position: absolute;
+  inset-inline-start: $space-sm;
+  display: flex;
+  color: $text-hint;
+  pointer-events: none;
+}
+
+.search-input {
+  inline-size: 100%;
+  block-size: 38px;
+  padding-inline: 36px $space-md;
+  border: $border;
+  border-radius: $radius;
+  background: $surface-sunken;
+  color: $text-primary;
+  font: inherit;
+  font-size: 13px;
+
+  &::placeholder {
+    color: $text-hint;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.lang-button {
+  min-inline-size: 64px;
+}
+
+// Lucide icons inside Material buttons need explicit alignment; Material
+// expects a mat-icon of a known size here.
+button svg {
+  vertical-align: middle;
+}
+
+.mat-mdc-raised-button svg {
+  margin-inline-end: $space-xs;
+}
+
+@media (max-width: 1024px) {
+  .menu-button {
+    display: inline-flex;
+  }
+
+  .search {
+    display: none;
+  }
+}

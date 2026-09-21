@@ -1,0 +1,122 @@
+<h2 mat-dialog-title>
+  {{ data.mode === 'create' ? i18n.t('createEquipmentRequest') : i18n.t('editEquipmentRequest') }}
+</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content>
+    <p class="hint">{{ i18n.t('crudHint') }}</p>
+
+    <div class="form-grid">
+      <mat-form-field>
+        <mat-label>{{ i18n.t('code') }}</mat-label>
+        <input matInput formControlName="id" required />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('equipment') }}</mat-label>
+        <mat-select formControlName="equipment" required>
+          @for (name of data.equipmentNames; track name) {
+            <mat-option [value]="name">{{ i18n.text(name) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('project') }}</mat-label>
+        <mat-select formControlName="project">
+          @for (project of data.projectNames; track project) {
+            <mat-option [value]="project">{{ i18n.text(project) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('ownership') }}</mat-label>
+        <mat-select formControlName="ownership">
+          @for (ownership of ownerships; track ownership) {
+            <mat-option [value]="ownership">{{ i18n.text(ownership) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('requestedBy') }}</mat-label>
+        <input matInput formControlName="requestedBy" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('location') }}</mat-label>
+        <input matInput formControlName="location" />
+      </mat-form-field>
+
+      <!--
+        Dates are free-text because the prototype stores display strings
+        ("Jul 20") rather than real dates. Swap for matDatepicker once the
+        model carries Date values — see PROJECT_GUIDE.md §6.4.
+      -->
+      <mat-form-field>
+        <mat-label>{{ i18n.t('requiredDate') }}</mat-label>
+        <input matInput formControlName="requiredDate" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('returnDate') }}</mat-label>
+        <input matInput formControlName="returnDate" />
+      </mat-form-field>
+
+      <mat-form-field class="span-2">
+        <mat-label>{{ i18n.t('purpose') }}</mat-label>
+        <input matInput formControlName="purpose" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('currentStage') }}</mat-label>
+        <mat-select formControlName="stage">
+          @for (stage of stages; track stage) {
+            <mat-option [value]="stage">{{ i18n.text(stage) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('status') }}</mat-label>
+        <mat-select formControlName="status">
+          @for (status of statuses; track status) {
+            <mat-option [value]="status">{{ i18n.text(status) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('estimatedCost') }}</mat-label>
+        <input matInput type="number" min="0" formControlName="estimatedCost" />
+        <span matTextSuffix>KWD</span>
+      </mat-form-field>
+
+      <h3 class="section-label">{{ i18n.t('beforeRequestChecks') }}</h3>
+      <div class="check-list">
+        @for (check of checkControls; track check.label) {
+          <mat-checkbox color="primary" [formControl]="check.control">
+            {{ i18n.text(check.label) }}
+          </mat-checkbox>
+        }
+      </div>
+
+      <h3 class="section-label">{{ i18n.t('beforeReceivingChecks') }}</h3>
+      <div class="check-list">
+        @for (check of receivingCheckControls; track check.label) {
+          <mat-checkbox color="primary" [formControl]="check.control">
+            {{ i18n.text(check.label) }}
+          </mat-checkbox>
+        }
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="dialogRef.close()">
+      {{ i18n.t('cancel') }}
+    </button>
+    <button mat-raised-button color="primary" type="submit">{{ i18n.t('save') }}</button>
+  </mat-dialog-actions>
+</form>

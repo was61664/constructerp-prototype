@@ -1,0 +1,33 @@
+@use 'tokens' as *;
+
+.projects-table {
+  inline-size: 100%;
+  min-inline-size: 960px; // Below this the columns collide; the card scrolls.
+}
+
+.primary-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.muted {
+  color: $text-hint;
+  font-size: 12px;
+}
+
+.spend-column {
+  min-inline-size: 200px;
+}
+
+.linked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: $text-secondary;
+}

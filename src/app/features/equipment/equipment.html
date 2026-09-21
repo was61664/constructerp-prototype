@@ -1,0 +1,168 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="i18n.t('assetRegister')"
+    [title]="i18n.t('ownedAndRented')"
+    [subtitle]="i18n.t('fleetVisibility')"
+  >
+    <button mat-raised-button color="primary" type="button" (click)="openCreate()">
+      <svg lucidePlus size="16" aria-hidden="true"></svg>
+      <span>{{ i18n.t('addEquipment') }}</span>
+    </button>
+  </app-page-header>
+
+  <div class="equipment-layout">
+    <app-section-card [eyebrow]="i18n.t('assetRegister')" [title]="i18n.t('ownedAndRented')" flush>
+      @if (store.equipment().length) {
+        <div class="table-scroll">
+          <table mat-table [dataSource]="store.equipment()" class="equipment-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('equipment') }}</th>
+              <td mat-cell *matCellDef="let item">
+                <span class="primary-cell">
+                  <strong>{{ i18n.text(item.name) }}</strong>
+                  <span class="muted code">{{ i18n.code(item.id) }}</span>
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('type') }}</th>
+              <td mat-cell *matCellDef="let item">{{ i18n.text(item.type) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="ownership">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('ownership') }}</th>
+              <td mat-cell *matCellDef="let item">{{ i18n.text(item.ownership) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="project">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('project') }}</th>
+              <td mat-cell *matCellDef="let item">{{ i18n.text(item.project) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>{{ i18n.t('status') }}</th>
+              <td mat-cell *matCellDef="let item">
+                <app-status-chip [status]="item.status" [label]="i18n.text(item.status)" />
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="utilization">
+              <th mat-header-cell *matHeaderCellDef class="cell-numeric">
+                {{ i18n.t('utilization') }}
+              </th>
+              <td mat-cell *matCellDef="let item" class="cell-numeric">
+                {{ i18n.formatPercent(item.utilization) }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="dailyCost">
+              <th mat-header-cell *matHeaderCellDef class="cell-numeric">
+                {{ i18n.t('dailyCost') }}
+              </th>
+              <td mat-cell *matCellDef="let item" class="cell-numeric">
+                {{ i18n.formatMoney(item.dailyCost) }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="cell-actions">
+                <span class="visually-hidden">{{ i18n.t('actions') }}</span>
+              </th>
+              <td mat-cell *matCellDef="let item" class="cell-actions">
+                <button
+                  mat-icon-button
+                  type="button"
+                  [attr.aria-label]="i18n.t('edit') + ' ' + i18n.text(item.name)"
+                  [matTooltip]="i18n.t('edit')"
+                  (click)="openEdit(item); $event.stopPropagation()"
+                >
+                  <svg lucidePencil size="17" aria-hidden="true"></svg>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  [attr.aria-label]="i18n.t('delete') + ' ' + i18n.text(item.name)"
+                  [matTooltip]="i18n.t('delete')"
+                  (click)="remove(item); $event.stopPropagation()"
+                >
+                  <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columns"></tr>
+            <!--
+              Rows are selectable: picking one drives the detail panel.
+              tabindex + keydown keep that reachable without a mouse.
+            -->
+            <tr
+              mat-row
+              *matRowDef="let row; columns: columns"
+              class="selectable-row"
+              tabindex="0"
+              [class.row-selected]="row.id === store.selectedEquipmentId()"
+              [attr.aria-label]="i18n.t('assetDetail') + ': ' + i18n.text(row.name)"
+              (click)="select(row)"
+              (keydown.enter)="select(row)"
+              (keydown.space)="select(row); $event.preventDefault()"
+            ></tr>
+          </table>
+        </div>
+      } @else {
+        <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
+      }
+    </app-section-card>
+
+    @if (store.selectedEquipment(); as asset) {
+      <app-section-card [eyebrow]="i18n.t('assetDetail')" [title]="i18n.text(asset.name)">
+        <div class="detail">
+          <app-meter-bar
+            [label]="i18n.t('utilization')"
+            [value]="asset.utilization"
+            [valueLabel]="i18n.formatPercent(asset.utilization)"
+          />
+
+          <dl class="detail-list">
+            <div>
+              <dt>{{ i18n.t('code') }}</dt>
+              <dd class="code">{{ i18n.code(asset.id) }}</dd>
+            </div>
+            <div>
+              <dt>{{ i18n.t('type') }}</dt>
+              <dd>{{ i18n.text(asset.type) }}</dd>
+            </div>
+            <div>
+              <dt>{{ i18n.t('ownership') }}</dt>
+              <dd>{{ i18n.text(asset.ownership) }}</dd>
+            </div>
+            <div>
+              <dt>{{ i18n.t('project') }}</dt>
+              <dd>{{ i18n.text(asset.project) }}</dd>
+            </div>
+            <div>
+              <dt>{{ i18n.t('dailyCost') }}</dt>
+              <dd class="text-numeric">{{ i18n.formatMoney(asset.dailyCost) }}</dd>
+            </div>
+            <div>
+              <dt>{{ i18n.t('status') }}</dt>
+              <dd>
+                <app-status-chip [status]="asset.status" [label]="i18n.text(asset.status)" />
+              </dd>
+            </div>
+          </dl>
+
+          <div class="next-action">
+            <span class="next-action-label">{{ i18n.t('nextAction') }}</span>
+            <p>{{ i18n.text(asset.nextAction) }}</p>
+          </div>
+
+          <button mat-stroked-button type="button" (click)="openEdit(asset)">
+            <svg lucidePencil size="16" aria-hidden="true"></svg>
+            <span>{{ i18n.t('edit') }}</span>
+          </button>
+        </div>
+      </app-section-card>
+    }
+  </div>
+</div>

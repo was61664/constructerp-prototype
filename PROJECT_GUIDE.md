@@ -1,0 +1,766 @@
+# ConstructERP — Project Guide
+
+> Status date: 2026-09-21 · Branch: `Dev-Mustafa`
+> Live prototype: <https://was61664.github.io/constructerp-prototype/>
+
+---
+
+# PART 0 — UI Rebuild Brief (active work)
+
+## 0.1 The brief as given
+
+> Build an Angular UI with a professional, "classic SaaS dashboard" aesthetic
+> (think 2019–2021 era design — clean and flat, NOT the newer rounded/dynamic
+> Material 3 look, and NOT dated skeuomorphic/gradient styles from 10+ years ago).
+>
+> ### Stack & Architecture
+>
+> - Angular (latest stable version)
+> - Angular Material (latest package version), but configure theming using the
+>   LEGACY M2 theming API (mat.define-light-theme, mat.define-palette, etc.)
+>   — do NOT use the default M3 theme tokens. Justify this explicitly in a
+>   comment at the top of the theme file so future devs don't "upgrade" it.
+> - Standalone components (current Angular convention), OnPush change detection
+>   where practical
+> - SCSS with a single source-of-truth theme file (\_theme.scss or similar,
+>   matching whatever naming convention already exists in this repo — check
+>   before introducing a new file name)
+> - Strict TypeScript, no `any`
+>
+> ### Design Spec
+>
+> - Background: white / very light gray (#FAFAFA or #F5F5F5), NOT pure white
+>   everywhere — use white for cards/surfaces to create subtle depth without
+>   shadows-as-decoration
+> - Primary palette: corporate blue/gray (e.g. primary #1976D2-ish blue, gray
+>   neutrals for text/borders) — flat colors, no gradients
+> - Buttons: standard rectangular or slightly-rounded (4px radius max) Material
+>   raised/stroked buttons — no pill-shaped or glassmorphic buttons
+> - Cards: 1px light border OR a subtle 1-2px box-shadow (not both), flat fill
+> - Typography: Tajawal (Google Font) for all UI text — load it properly via
+>   index.html or @angular/material typography config, not inline @import in
+>   every component
+> - Layout: standard fixed sidebar + top toolbar dashboard pattern, generous
+>   whitespace, no dense/compact spacing
+>
+> ### Code Quality Requirements
+>
+> - Follow whatever naming conventions, folder structure, and module patterns
+>   already exist in this project — inspect existing files first, do not
+>   invent new nomenclature
+> - Reusable, single-responsibility components; no god-components
+> - Scalable folder structure (feature-based, not type-based, unless the repo
+>   already uses type-based)
+> - Accessible: proper aria labels, sufficient color contrast, keyboard nav
+> - Add brief comments only where intent isn't obvious from code
+>
+> ### Before You Code
+>
+> List the components/files you plan to create/modify and the theming
+> approach you'll use, and wait for my confirmation before implementation.
+
+**Note on the confirmation gate:** the brief asks to wait for confirmation, but the
+instruction accompanying it was "put this in the first of the .md file and start
+implementing the UI and give me the run URL". Implementation therefore proceeded
+without a separate confirmation round. The plan below is recorded as-built.
+
+## 0.2 Conventions found in the repo (inspected before coding)
+
+These were checked first, as the brief requires. Nothing new was invented where a
+convention already existed.
+
+| Question             | What the repo already does                                                         | Decision                                                        |
+| -------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Component file names | `app.ts` / `app.html` / `app.scss`, class `App` — Angular 20 suffix-less style | Followed: `dashboard.ts` → `class Dashboard`, never `*.component.ts` |
+| Folder structure     | Flat `src/app/` — only one component existed, so no structure to follow          | Introduced feature-based folders (brief's default)               |
+| Styles               | One global `src/styles.scss`, no partials existed                                | Added `src/styles/` with `_theme.scss` + `_tokens.scss`     |
+| Icons                | `@lucide/angular` already a dependency                                            | Kept. No Material Icons font added — flat line icons suit the era |
+| Templates            | `templateUrl` + `styleUrl`                                                       | Followed for features/layout; inline only for trivial presentational components |
+| i18n                 | Hand-rolled EN/AR dictionaries + RTL                                               | Preserved and moved into `core/i18n/`                          |
+| Currency             | KWD via `DEFAULT_CURRENCY_CODE` + `Intl`                                       | Preserved                                                       |
+| Strictness           | `strict: true` already on                                                        | Kept; no `any` introduced                                     |
+
+## 0.3 Theming approach
+
+Angular Material 20.2.14 defaults to **Material 3**, whose rounded, tonal, dynamic-color
+look is explicitly ruled out by the brief. In this version the legacy Material 2 API is
+still shipped, but **re-exported under an `m2-` prefix**
+(`node_modules/@angular/material/core/m2/_index.scss` is forwarded as `m2-*`).
+
+So the function names in the brief map like this:
+
+| Brief                        | Actual API in Material 20.2.14  |
+| ---------------------------- | ------------------------------- |
+| `mat.define-palette`       | `mat.m2-define-palette`       |
+| `mat.define-light-theme`   | `mat.m2-define-light-theme`   |
+| `mat.define-typography-config` | `mat.m2-define-typography-config` |
+| `mat.$blue-palette`        | `mat.$m2-blue-palette`        |
+
+`mat.all-component-themes($theme)` still accepts an M2 theme object and emits M2 tokens —
+that is what produces the flat 2019-era component look (4px radii, flat fills, classic
+elevation scale) instead of M3 tokens.
+
+This is deliberate and is documented in a header comment in `_theme.scss` so a future
+developer does not "modernise" it and silently change the entire product's appearance.
+
+## 0.4 Files created / modified
+
+**Theme & global (single source of truth)**
+
+- `src/styles/_theme.scss` — **new.** M2 palettes, Tajawal typography config, theme object, justification comment
+- `src/styles/_tokens.scss` — **new.** Layout/surface/border/spacing tokens consumed by components
+- `src/styles.scss` — modified. Applies the theme, global resets, layout utilities
+- `src/index.html` — modified. Tajawal loaded once via `<link>` (not per-component `@import`)
+- `angular.json` — modified. `stylePreprocessorOptions.includePaths` so components `@use 'tokens'`
+
+**Core (models, data, services)**
+
+- `core/models/` — `equipment.ts`, `project.ts`, `equipment-request.ts`, `rental.ts`, `inspection.ts`, `transport-move.ts`, `navigation.ts`, `index.ts`
+- `core/i18n/` — `translations.ts` (UI strings), `data-labels.ts` (data-value labels)
+- `core/services/i18n.ts` — language signal, direction, `t()`, `text()`, number/currency/date formatting
+- `core/services/erp-store.ts` — signal-based store, localStorage persistence, all CRUD
+- `core/services/navigation.ts` — module + nav-group definitions with routes
+
+**Layout (shell)**
+
+- `layout/shell/` — sidenav container wiring toolbar + sidebar + `<router-outlet>`
+- `layout/top-toolbar/` — search, language toggle, notifications, primary action
+- `layout/sidebar-nav/` — grouped navigation, active-route highlighting
+
+**Shared presentational components**
+
+- `shared/components/page-header/` — title, subtitle, action slot
+- `shared/components/section-card/` — the bordered white surface used everywhere
+- `shared/components/kpi-card/` — dashboard metric tile
+- `shared/components/status-chip/` — flat 3px status label (not a pill chip)
+- `shared/components/meter-bar/` — labelled progress bar
+- `shared/components/confirm-dialog/` — replaces `window.confirm()`
+
+**Features (one folder per module)**
+
+- `features/dashboard/`, `features/projects/`, `features/equipment/`, `features/requests/`, `features/rentals/`, `features/transport/`, `features/inspections/`, `features/costs/`, `features/reports/`
+- Form dialogs co-located with their feature: `projects/project-form-dialog/`, `equipment/equipment-form-dialog/`, `requests/request-form-dialog/`
+
+**App root (modified)**
+
+- `app.ts` / `app.html` / `app.scss` — reduced from a 1,206-line god-component to a thin shell host
+- `app.routes.ts` — real lazy routes replacing the empty array
+- `app.config.ts` — animations provider added, KWD default kept
+- `app.spec.ts` — updated for the new structure
+
+## 0.5 What this rebuild does and does not change
+
+**Does:** UI architecture, visual design, routing, component structure, accessibility.
+
+**Does not:** introduce a backend, a database, or authentication. Data still comes from
+the mock store in `localStorage`. Every item in Part 1's department TODO lists below
+remains open except the frontend-architecture ones noted as done.
+
+## 0.6 As-built notes
+
+Things that differ from the plan in §0.4, or that a reviewer should know.
+
+**Dependencies added**
+
+| Package                | Version      | Why that version                                                              |
+| ---------------------- | ------------ | ----------------------------------------------------------------------------- |
+| `@angular/material`  | `20.2.14`  | Newest of the v20 line. Material trails core (20.3.x) by a minor — normal.     |
+| `@angular/cdk`       | `20.2.14`  | Must match Material exactly (hard peer).                                       |
+| `@angular/animations` | `20.3.26` | Must match `@angular/core` **exactly**; the newest 20.3.31 refuses to install. |
+
+**Naming**
+
+- `features/equipment/equipment.ts` exports **`EquipmentPage`**, not `Equipment` —
+  `Equipment` is already the domain model's name. The file name still follows the repo's
+  suffix-less convention.
+
+**Extra files not in the original plan**
+
+- `src/styles/_dialog-form.scss` — a `dialog-form` mixin shared by the three entity form
+  dialogs, so the two-column grid is not copy-pasted into three stylesheets.
+- `shared/services/confirm.ts` — wraps the confirm dialog so every destructive action
+  routes through one translated code path.
+- `features/requests/request-stage-tracker/` and `features/requests/request-checklist/` —
+  the requests screen needed these to avoid becoming a mini god-component.
+
+**angular.json changes**
+
+- `stylePreprocessorOptions.includePaths: ["src/styles"]` on both `build` and `test`,
+  so components write `@use 'tokens' as *` rather than counting `../`s.
+- Initial bundle budget raised from 500 kB → 1 MB warning / 1.5 MB error. The 500 kB
+  figure was set for an app with no UI library. Current production build is **758 kB raw,
+  158 kB estimated transfer (gzipped)** — normal for Material. Flagged here rather than
+  silently buried: if bundle size becomes a real concern, the lever is replacing
+  `mat.all-component-themes` with per-component theme mixins, which trades ~60 kB of CSS
+  for a list that must be maintained by hand.
+
+**Two real bugs found and fixed during the build**
+
+1. **Material ignored the runtime language switch.** CDK's `Directionality` reads the
+   document direction **once**, at service construction. Toggling to Arabic left it on
+   `ltr`, so the sidenav reserved its margin on the wrong side (page content slid under
+   the drawer) and dialogs opened with an explicit `dir="ltr"` that overrode the
+   document. Fixed in `core/services/i18n.ts` by pushing the new direction into
+   `Directionality.valueSignal` and emitting `change`.
+2. **Arabic-Indic digits mangled record identifiers.** Localizing the digits in
+   `PRJ-1001` made the bidi algorithm reorder the run, displaying `١٠٠١-PRJ`.
+   Identifiers are codes, not quantities, so `I18nService.code()` returns them untouched
+   and the `.code` class isolates the span (`unicode-bidi: isolate`).
+
+**Verified**
+
+- `npm run build` (production): clean, no warnings.
+- `npm test`: 12/12 passing (shell, i18n, and store behaviour).
+- All nine routes render with no console or page errors, in both languages.
+- Arabic RTL checked on the dashboard, tables, dialogs, and at 820px width.
+
+**Known cosmetic limits**
+
+- The toolbar search box and notifications bell are rendered **disabled**, because
+  neither has anything behind it yet. That is deliberate: a control that looks live and
+  does nothing is worse than one that says it is unavailable. Same for the two
+  `Export Report` buttons.
+
+---
+
+# PART 1 — Project Guide
+
+This document describes **what the project is today**, **how to run it**, **what technology it should
+use going forward**, and a **TODO list broken down by department**. Each department section is
+self-contained so it can be handed to the person who owns that area.
+
+---
+
+## 1. What this project is
+
+ConstructERP is a **construction equipment ERP**. It tracks heavy equipment (owned and rented),
+the request → approval → receiving → inspection cycle that must complete before an asset can be
+used, vendor rentals, transport moves, inspections with photo/video/signature evidence, and the
+resulting cost allocation per project.
+
+What exists right now is a **clickable UI prototype**, not a working system. It is a single Angular
+page with nine module screens, bilingual English/Arabic with full RTL, hard-coded mock data, and
+mock CRUD that saves to the browser's `localStorage`. There is no backend, no database, no
+authentication, and no real reporting.
+
+### The nine modules (all present in the UI)
+
+| Module        | Screen purpose                                             | Data state                           |
+| ------------- | ---------------------------------------------------------- | ------------------------------------ |
+| Dashboard     | KPI tiles, utilization bars, next actions                  | Computed from mock arrays            |
+| Projects      | Portfolio, budget vs. spend, linked activity counts        | Mock + CRUD                          |
+| Requests      | 4-stage flow with pre-request and pre-receiving checklists | Mock + CRUD                          |
+| Equipment     | Asset register + detail panel                              | Mock + CRUD                          |
+| Rentals       | Vendor commitments, return dates, overdue flag             | Mock,**read-only**             |
+| Transport     | Delivery/return routes, cost share donut                   | **Hard-coded in the template** |
+| Inspections   | Media counts, inspector, pass/attention/pending signature  | Mock,**read-only**             |
+| Project Costs | Equipment / transport / extras split per project           | Derived from projects                |
+| Reports       | Three static report cards                                  | **Static text only**           |
+
+### Business rule already modelled in the UI
+
+An asset cannot move to `Working` until: the request is **approved**, delivery is **received**, and
+the **pre-use inspection passes**. This rule is currently only visual — nothing enforces it in code.
+It is the single most important rule to implement server-side.
+
+---
+
+## 2. Current technology
+
+| Area             | What is used                                                         | Version / detail                                      |
+| ---------------- | -------------------------------------------------------------------- | ----------------------------------------------------- |
+| Language         | TypeScript                                                           | `~5.9.2`, `strict` mode on                        |
+| Framework        | Angular (standalone components, signals)                             | `^20.3.0`                                           |
+| Change detection | Zone.js with`eventCoalescing`                                      | `zone.js ~0.15.0`                                   |
+| Routing          | `@angular/router` provided but **`routes` array is empty** | [app.routes.ts](src/app/app.routes.ts)                 |
+| Forms            | `FormsModule` (template-driven `ngModel`)                        | `^20.3.0`                                           |
+| Icons            | `@lucide/angular`                                                  | `^1.25.0`                                           |
+| Styling          | Hand-written SCSS, no UI library                                     | [app.scss](src/app/app.scss), 1,201 lines              |
+| i18n             | Hand-rolled dictionaries inside the component                        | Not`@angular/localize`, not `ngx-translate`       |
+| Currency         | `DEFAULT_CURRENCY_CODE: 'KWD'` + `Intl.NumberFormat`             | [app.config.ts:14](src/app/app.config.ts#L14)          |
+| Persistence      | `localStorage` keys `constructerp.*`                             | [app.ts:1157-1183](src/app/app.ts#L1157-L1183)         |
+| Tests            | Karma + Jasmine, 1 spec file                                         | [app.spec.ts](src/app/app.spec.ts), 122 lines          |
+| CI/CD            | GitHub Actions → GitHub Pages on push to`main`                    | [deploy-pages.yml](.github/workflows/deploy-pages.yml) |
+| Node             | 22 (in CI)                                                           |                                                       |
+
+**Database: none.** **Backend: none.** **Auth: none.**
+
+### Code size
+
+```
+src/app/app.ts      1,206 lines   ← types, translations, mock data, all logic, all CRUD
+src/app/app.scss    1,201 lines   ← every style for every module
+src/app/app.html      849 lines   ← all nine modules in one @switch block
+src/app/app.spec.ts   122 lines
+```
+
+Everything lives in **one component**. That is the defining structural problem of the codebase.
+
+---
+
+## 3. Project level assessment
+
+**Level 1 of 5 — Interactive UI prototype / demo.**
+
+| Level | Meaning                                                         | ConstructERP             |
+| ----- | --------------------------------------------------------------- | ------------------------ |
+| 1     | Clickable prototype, mock data, no backend                      | ✅**You are here** |
+| 2     | Real backend + database, single tenant, basic auth              | Next target              |
+| 3     | Production MVP: roles, audit, file storage, real reports        |                          |
+| 4     | Multi-tenant, integrations (accounting, GPS/telematics), mobile |                          |
+| 5     | Scaled product: SLAs, observability, offline field app          |                          |
+
+**What it is good for today:** stakeholder demos, validating the request→inspection flow with site
+managers, confirming Arabic/RTL expectations, and agreeing on screens before the backend is built.
+
+**What it must not be used for:** anything real. Data lives in one browser, is lost when cache is
+cleared, is not shared between users, and has no validation or permissions.
+
+Estimated effort to reach Level 2 (real backend + DB + auth, same nine modules):
+**roughly 8–12 developer-weeks** for one full-stack developer, assuming the UI stays as-is.
+
+---
+
+## 4. How to run it
+
+```bash
+npm ci          # install exact dependency versions
+npm start       # dev server on http://localhost:4200
+npm run build   # production build into dist/
+npm test        # Karma + Jasmine in Chrome
+```
+
+Deployment is automatic: any push to `main` triggers
+[deploy-pages.yml](.github/workflows/deploy-pages.yml), which builds with
+`--base-href /constructerp-prototype/` and publishes `dist/constructerp-prototype/browser` to
+GitHub Pages. Work happens on `Dev-Mustafa`; merging to `main` publishes.
+
+**Resetting the prototype data:** open DevTools → Application → Local Storage → delete the
+`constructerp.projects`, `constructerp.equipment`, and `constructerp.equipmentRequests` keys, then
+reload. The original mock data returns.
+
+---
+
+## 5. Recommended target stack
+
+This aligns with the .NET stack already in use on your other projects, so the team does not learn a
+second backend ecosystem.
+
+| Layer              | Recommendation                                                            | Why                                                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Database** | **PostgreSQL 16**                                                   | Strong JSONB for checklist/inspection payloads, excellent date/interval handling for rental periods, free, easy to host. Use**SQL Server** instead only if the client already runs a Microsoft stack and licences exist. |
+| ORM                | EF Core 9 with code-first migrations                                      | Schema versioned in git                                                                                                                                                                                                        |
+| Backend            | ASP.NET Core 9 Web API, REST + JSON                                       | Matches existing team skill                                                                                                                                                                                                    |
+| Auth               | ASP.NET Core Identity + JWT, or Keycloak if SSO is needed                 | Roles: Admin, Project Manager, Site Engineer, Inspector, Procurement, Viewer                                                                                                                                                   |
+| File storage       | S3-compatible (AWS S3 or self-hosted MinIO)                               | Inspection photos/videos must never sit in the database                                                                                                                                                                        |
+| Background jobs    | Hangfire (or MassTransit + RabbitMQ if events are already used elsewhere) | Overdue-rental alerts, inspection reminders                                                                                                                                                                                    |
+| Cache              | Redis (only when needed)                                                  | Dashboard aggregates                                                                                                                                                                                                           |
+| Reporting          | SQL views + QuestPDF / ClosedXML for export                               | Replaces the static report cards                                                                                                                                                                                               |
+| Frontend           | Keep Angular 20                                                           | Already written; needs restructuring, not replacing                                                                                                                                                                            |
+| Frontend state     | Angular signals + a service layer per domain                              | Continue the pattern already started                                                                                                                                                                                           |
+| API contract       | OpenAPI/Swagger → generate TS client                                     | Stops DTO drift                                                                                                                                                                                                                |
+| Local dev          | Docker Compose: Postgres + MinIO + API                                    | One-command environment                                                                                                                                                                                                        |
+
+### Suggested core tables
+
+```
+projects, equipment, equipment_types, equipment_requests, request_checks,
+receiving_checks, rentals, vendors, transport_moves, inspections,
+inspection_media, cost_entries, users, roles, audit_log
+```
+
+Two decisions to make before the first migration:
+
+1. **Money storage.** Use `numeric(18,3)` — KWD has **three** decimal places, not two. A `decimal(18,2)`
+   column will silently round every fils. This is the most expensive mistake to fix later.
+2. **Dates.** The prototype stores dates as display strings (`'Jul 20'`) and
+   [formatDateLabel](src/app/app.ts#L1095-L1107) hard-codes a `Jul` regex. The database must use real
+   `date` / `timestamptz` columns; formatting belongs in the UI only.
+
+---
+
+## 6. Departments
+
+Each department below has: what exists now, and what to do. Check items off in order — they are
+roughly dependency-ordered within each department.
+
+---
+
+### 6.1 Frontend Architecture
+
+**Now:** one `App` component holds every type, every translation, every mock record, and every CRUD
+method. Routing is installed but unused — module switching is a `@switch` on a signal, so there are
+no URLs, no deep links, no browser back button, and no lazy loading. `dataVersion` is a counter
+signal bumped manually to force `computed()` re-evaluation, because the data arrays are plain
+arrays rather than signals.
+
+**TODO**
+
+- [ ] Fill [app.routes.ts](src/app/app.routes.ts): one lazy route per module (`/dashboard`, `/projects`, `/equipment`, `/requests`, `/rentals`, `/transport`, `/inspections`, `/costs`, `/reports`).
+- [ ] Split [app.html](src/app/app.html) into nine feature components; keep only the shell (sidebar, topbar, search) in `App`.
+- [ ] Split [app.scss](src/app/app.scss): shared tokens/mixins in a global file, the rest co-located with each component.
+- [ ] Extract shared UI into presentational components: `panel`, `kpi-tile`, `status-badge`, `progress-bar`, `data-row`.
+- [ ] Convert `projects`, `equipment`, `equipmentRequests` to `signal<T[]>` and **delete the `dataVersion` counter** ([app.ts:507](src/app/app.ts#L507)) along with the four `this.dataVersion()` calls that exist only to trigger recomputation.
+- [ ] Replace the mock arrays with injectable services (`ProjectService`, `EquipmentService`, …) so swapping `localStorage` for HTTP touches one file per domain.
+- [ ] Move the `Equipment`, `Rental`, `Inspection`, `EquipmentRequest`, `ProjectRecord` types into `src/app/core/models/`.
+- [ ] Add `@defer` or route-level lazy loading once modules are separate components.
+- [ ] Decide on zoneless change detection (`provideZonelessChangeDetection`) once everything is signal-based — the app is already close.
+
+---
+
+### 6.2 Backend & API
+
+**Now:** does not exist. All data is client-side.
+
+**TODO**
+
+- [ ] Create the ASP.NET Core 9 solution: `Api`, `Application`, `Domain`, `Infrastructure`.
+- [ ] Define DTOs mirroring the existing TS types so the UI contract does not change.
+- [ ] CRUD endpoints for: projects, equipment, requests, rentals, vendors, transport moves, inspections, cost entries.
+- [ ] Implement the **state machine** for `EquipmentRequest`: `Draft → Submitted → Approved → Received → Inspection Pending → Ready to Use`. Reject any transition that skips a stage.
+- [ ] Enforce server-side: equipment cannot become `Working` without an approved request + recorded receiving + passed inspection.
+- [ ] Validate the six pre-request checks and six pre-receiving checks as real rules, not booleans the client sets. Today any client can set `passed: true` on all of them.
+- [ ] Endpoint for dashboard aggregates (total equipment, rental count, daily spend, average utilization) — do not compute these in the browser over a full table.
+- [ ] Media upload endpoints returning pre-signed S3/MinIO URLs.
+- [ ] Swagger/OpenAPI + generated TypeScript client.
+- [ ] Global error handling, `ProblemDetails` responses, request logging with correlation IDs.
+- [ ] Pagination, filtering, and sorting on every list endpoint — the prototype renders full arrays.
+
+---
+
+### 6.3 Database
+
+**Now:** three `localStorage` keys holding JSON blobs, written on every change by an `effect()`
+([app.ts:844-847](src/app/app.ts#L844-L847)). No relations, no constraints, no history.
+
+**TODO**
+
+- [ ] Stand up PostgreSQL 16 in Docker Compose for local development.
+- [ ] Model the schema; enforce foreign keys (`equipment.project_id`, `request.equipment_id`, `inspection.equipment_id`, `rental.vendor_id`).
+- [ ] Use `numeric(18,3)` for all money columns (KWD = 3 decimals).
+- [ ] Use real `date` / `timestamptz` columns — never display strings.
+- [ ] Add `created_at`, `updated_at`, `created_by`, `updated_by` to every table.
+- [ ] Soft delete (`deleted_at`) instead of hard delete — the prototype's delete is unrecoverable.
+- [ ] `audit_log` table capturing every status transition on requests, equipment, and inspections. Construction disputes are settled with audit trails.
+- [ ] EF Core migrations from day one; never edit the schema by hand.
+- [ ] Seed script that loads the current prototype mock data so demos keep working.
+- [ ] Indexes on `equipment.status`, `equipment.project_id`, `requests.stage`, `rentals.return_date` (the overdue query).
+- [ ] Backup and restore procedure, tested at least once before go-live.
+
+---
+
+### 6.4 Localization & RTL
+
+**Now:** the strongest part of the prototype. Four hand-written dictionaries in
+[app.ts:123-466](src/app/app.ts#L123-L466): `translations` (UI strings), `moduleLabels`,
+`navGroupLabels`, and `displayText` (data-value translations). Arabic-Indic digit conversion via
+`localizeDigits`, direction applied to `<html>` and `<body>` through an `effect()`. Currency
+formatting switches between `en-KW` and `ar-KW`.
+
+**Problem:** `displayText` translates **data values** — project names, vendor names, equipment names,
+status labels. Once data comes from a database this stops working entirely; a project a user creates
+will never have an Arabic translation.
+
+**TODO**
+
+- [ ] Move translations out of the component into JSON resource files.
+- [ ] Choose the long-term approach: `@angular/localize` (compile-time, two builds) or a runtime service (one build, live toggle). **A runtime service is recommended** — the live language toggle is a demo feature worth keeping.
+- [ ] Separate the two concerns: **UI labels** stay in resource files; **enum values** (`Working`, `Idle`, `Approved`, …) become coded values with per-language labels from the API; **user-entered data** (project/vendor/equipment names) gets `name_en` + `name_ar` columns.
+- [ ] Persist the language choice (`localStorage` or user profile) — it currently resets to English on every reload.
+- [ ] Replace `formatDateLabel`'s hard-coded `Jul` regex ([app.ts:1100](src/app/app.ts#L1100)) with `Intl.DateTimeFormat` over real `Date` values.
+- [ ] Decide on the Hijri calendar: display-only, or a real requirement? Ask the client before building.
+- [ ] Audit every icon and directional arrow for RTL mirroring (`LucideChevronRight` in particular).
+- [ ] Test Arabic on a real Windows/Android device — font rendering differs from the dev machine.
+
+---
+
+### 6.5 Equipment & Fleet
+
+**Now:** five mock assets, full CRUD, a detail panel, utilization bars, five statuses. Utilization is
+a manually entered number.
+
+**TODO**
+
+- [ ] Equipment categories/types as a managed lookup table, not a free-text `type` field.
+- [ ] Asset profile: serial number, manufacturer, model, year, plate/registration, purchase date, book value.
+- [ ] Documents per asset: registration, insurance, operator certificates — with expiry dates and alerts.
+- [ ] Calculate utilization from actual working hours or assignment days instead of typed input.
+- [ ] Maintenance schedule: service intervals, due dates, maintenance history, downtime tracking.
+- [ ] Assignment history — which project held the asset, and when.
+- [ ] QR code or barcode per asset for site scanning.
+- [ ] Availability calendar to prevent double-booking the same asset across two projects.
+- [ ] Bulk import from Excel — the client will have an existing asset list.
+
+---
+
+### 6.6 Requests & Approvals
+
+**Now:** two mock requests, four stages, twelve checklist booleans, full CRUD. Stage and status are
+free-form fields — nothing prevents setting a request to `Ready to Use` directly.
+
+**TODO**
+
+- [ ] Server-enforced state machine (see 6.2); the UI must only offer legal transitions.
+- [ ] Real approval routing: who approves what, and value thresholds (e.g. above 5,000 KWD requires a second approver).
+- [ ] Approval delegation for leave/absence.
+- [ ] Rejection with a mandatory reason, and resubmission flow.
+- [ ] Automatic checklist evaluation — `Equipment available` and `No idle similar equipment` should be queries, not checkboxes.
+- [ ] Notifications: email/in-app on submit, approve, reject, and receiving.
+- [ ] SLA timers and an escalation path for requests pending too long.
+- [ ] Full audit trail per request: who did what, when, from which stage.
+- [ ] Attachments on the request itself (scope drawings, site permits).
+
+---
+
+### 6.7 Projects & Cost Control
+
+**Now:** three mock projects with `budget`, `equipmentSpend`, `transportSpend`, `extraSpend`,
+`progress` — all typed manually. Linked activity counts are computed by matching **project name
+strings** ([app.ts:1051-1061](src/app/app.ts#L1051-L1061)), which silently breaks when a project is
+renamed.
+
+**TODO**
+
+- [ ] Link by project **ID**, never by name string.
+- [ ] Derive spend from actual cost entries instead of manual totals.
+- [ ] Cost entry model: date, project, equipment, category, amount, source document.
+- [ ] Budget lines per category with variance reporting and over-budget alerts.
+- [ ] Cost allocation rules: how a shared asset's daily cost is split between two projects.
+- [ ] Project phases/WBS, if the client needs cost broken down below project level.
+- [ ] Derive `progress` from something real (milestones, completed work) or label it clearly as a manual entry.
+- [ ] Project close-out: settle rentals, return assets, produce a final cost report.
+- [ ] Currency review — KWD is hard-coded throughout; confirm whether multi-currency is ever needed.
+
+---
+
+### 6.8 Rentals & Procurement
+
+**Now:** three mock rentals, **read-only** (no CRUD). Vendors are plain strings. `Overdue` is a
+status typed into the mock data, not a calculation.
+
+**TODO**
+
+- [ ] Vendor master: contacts, commercial registration, payment terms, rate card, performance rating.
+- [ ] Full CRUD for rentals — currently the only main entity with no edit path.
+- [ ] Rental contract: start date, end date, daily/weekly/monthly rate, mobilization and demobilization fees, extension terms.
+- [ ] **Calculate** overdue status from `return_date < today`; add a scheduled job for reminders.
+- [ ] Rental extension and early-return workflows with cost recalculation.
+- [ ] Vendor invoice matching: rental → delivery note → invoice → payment.
+- [ ] Rent-vs-buy comparison report — the prototype already tracks utilization, which is the input for it.
+- [ ] Alert when an idle owned asset exists while the same type is being rented externally.
+
+---
+
+### 6.9 Transportation & Logistics
+
+**Now:** the weakest module. Three routes and a 24% donut are **hard-coded directly in the HTML**
+([app.html:711-751](src/app/app.html#L711-L751)) with no backing data model at all.
+
+**TODO**
+
+- [ ] Create the `TransportMove` model: from, to, equipment, date, carrier, cost, status, ETA.
+- [ ] Replace the hard-coded template block with real data.
+- [ ] Replace the static donut with a real chart driven by transport cost vs. total equipment spend.
+- [ ] Link every move to a request and a project, so transport cost lands in project costs automatically.
+- [ ] Carrier/transporter master with rates by route.
+- [ ] Trip statuses: planned, dispatched, in transit, delivered, returned.
+- [ ] Delivery note with driver, receiver, timestamps, and signature.
+- [ ] Permits for oversize loads — likely a real requirement for a 120T crane.
+- [ ] GPS/telematics integration is a Level 4 item; note it, do not build it now.
+
+---
+
+### 6.10 Inspections & QHSE
+
+**Now:** three mock inspection records, **read-only**. Media is a **string** — `'8 photos, 1 video'` —
+not actual files. Signature status exists as a label only.
+
+**TODO**
+
+- [ ] Real media upload: photos and video to S3/MinIO, thumbnails, and a gallery viewer.
+- [ ] Digital signature capture (canvas), stored with the timestamp and signer identity.
+- [ ] Configurable inspection templates per equipment type rather than a fixed checklist.
+- [ ] Inspection types: pre-use, periodic, post-incident, pre-return.
+- [ ] Defect/finding records with severity, assignee, and follow-up until closure.
+- [ ] Block the `Ready to Use` transition when an inspection has open critical findings.
+- [ ] Certificate expiry tracking (lifting gear in particular — usually a legal requirement).
+- [ ] Mobile-friendly inspection form — this is filled in on-site, on a phone, often with poor signal.
+- [ ] Offline capture with queued sync. Site connectivity is the number-one reason field ERP modules fail.
+- [ ] PDF inspection report with embedded photos and signature.
+
+---
+
+### 6.11 Reporting & Analytics
+
+**Now:** three static cards with fixed text and a note saying reporting is not implemented
+([app.ts:223](src/app/app.ts#L223)). The dashboard KPIs are real but computed in the browser over
+five mock rows.
+
+**TODO**
+
+- [ ] Move all aggregation server-side (SQL views or a read model).
+- [ ] Build the three promised reports for real: equipment utilization summary, rental spend & overdue returns, inspection compliance register.
+- [ ] Add: project cost breakdown, idle asset report, transport cost analysis, vendor spend, maintenance cost per asset.
+- [ ] Date-range, project, and equipment-type filters on every report.
+- [ ] Export to Excel (ClosedXML) and PDF (QuestPDF) — **the `Export Report` button currently does nothing**.
+- [ ] Real charts (ngx-charts or ECharts) replacing the CSS bars and the hard-coded donut.
+- [ ] Scheduled email reports (weekly fleet summary to management).
+- [ ] Executive dashboard with trends over time — everything today is a single point in time.
+
+---
+
+### 6.12 Identity, Access & Security
+
+**Now:** nothing. No login, no users, no roles, no permissions. Anyone with the URL sees and edits
+everything.
+
+**TODO**
+
+- [ ] Login, logout, session handling, password reset.
+- [ ] Role model: Admin, Project Manager, Site Engineer, Inspector, Procurement, Viewer.
+- [ ] Permission matrix per module and per action (who approves, who receives, who inspects, who sees cost).
+- [ ] Row-level scoping: a site engineer sees only their assigned projects.
+- [ ] Route guards on the frontend **and** authorization on every endpoint — frontend guards are not security.
+- [ ] Replace `window.confirm()` deletes ([app.ts:1131-1133](src/app/app.ts#L1131-L1133)) with a proper dialog, and restrict delete to privileged roles.
+- [ ] Audit log for authentication events and permission changes.
+- [ ] Security headers, HTTPS enforcement, rate limiting.
+- [ ] Data retention and privacy review — inspection media may contain identifiable workers.
+
+---
+
+### 6.13 DevOps & Infrastructure
+
+**Now:** one GitHub Actions workflow building the frontend and publishing to GitHub Pages on every
+push to `main`. No environments, no secrets, no backend to deploy.
+
+**TODO**
+
+- [ ] Environments: dev, staging, production, with per-environment configuration.
+- [ ] Frontend environment files for the API base URL — nothing is configurable today.
+- [ ] Docker Compose for local development: API + Postgres + MinIO.
+- [ ] Backend build/test/deploy pipeline.
+- [ ] Automated database migrations on deploy, with a rollback plan.
+- [ ] A staging URL for client review, separate from the public Pages demo.
+- [ ] Keep the GitHub Pages demo alive, pointed at seeded data — it is useful for sales.
+- [ ] Centralized logging and error tracking (Sentry or Application Insights).
+- [ ] Health checks and uptime monitoring.
+- [ ] Backup automation with a **restore drill**, not just backups.
+
+---
+
+### 6.14 Quality & Testing
+
+**Now:** one spec file, 122 lines, covering component creation, heading text, module navigation, and
+direction/lang attributes. No lint configuration. Prettier is configured in
+[package.json](package.json) but there is no `format` script. No e2e tests.
+
+**TODO**
+
+- [ ] Add ESLint (`ng add @angular-eslint/schematics`) and a `lint` npm script.
+- [ ] Add `"format": "prettier --write ."` — the config is already there, unused.
+- [ ] Run lint, format check, and tests in CI **before** the deploy job. Today an unbuildable-quality commit still deploys.
+- [ ] Unit tests for business logic as it moves into services — the checklist and state-machine rules especially.
+- [ ] Backend unit and integration tests, including the request state machine.
+- [ ] E2E tests (Playwright) for the critical path: create request → approve → receive → inspect → ready.
+- [ ] Test the Arabic/RTL path explicitly — the spec only asserts `ltr` today.
+- [ ] Accessibility audit: keyboard navigation, focus management, contrast, screen-reader labels on the icon-only buttons.
+- [ ] Responsive testing on real tablets and phones — inspections happen on-site.
+- [ ] Coverage thresholds in CI once a real suite exists.
+
+---
+
+### 6.15 Product & Documentation
+
+**Now:** the default Angular CLI README plus this guide. No requirements document, no data
+dictionary, no user manual.
+
+**TODO**
+
+- [ ] Write the requirements document; validate it against the prototype with actual site staff.
+- [ ] Data dictionary: every entity, every field, every status value, every business rule.
+- [ ] Record the decisions behind the checklists — why those six checks, who defined them.
+- [ ] Replace the CLI boilerplate in [README.md](README.md) with a real project overview.
+- [ ] Architecture decision records (ADRs) for: database choice, i18n approach, auth approach.
+- [ ] User manual per role, in **Arabic and English** — site staff will need Arabic.
+- [ ] Training plan and pilot project for rollout.
+- [ ] Data migration plan from whatever the client uses now (almost certainly Excel).
+
+---
+
+## 7. What to do next — recommended order
+
+**Phase 0 — Validate (1–2 weeks, no code)**
+
+1. Demo the prototype to real site staff and management; record what is wrong.
+2. Confirm the request/approval rules and the twelve checklist items against actual practice.
+3. Confirm Arabic requirements: is it mandatory for all users, and is the Hijri calendar needed?
+4. Get the client's current asset list — it determines the real data model.
+
+**Phase 1 — Foundations (3–4 weeks)**
+
+1. Restructure the frontend: routes, feature components, services (§6.1). Do this **before** adding
+   features — every week of delay makes the split harder.
+2. Stand up the backend skeleton, PostgreSQL, and migrations (§6.2, §6.3).
+3. Build auth and roles (§6.12). Retrofitting permissions is far more expensive than building them in.
+
+**Phase 2 — Core modules (4–6 weeks)**
+
+1. Projects and Equipment against the real API.
+2. Requests with the server-enforced state machine — this is the heart of the system.
+3. Rentals with vendors and calculated overdue status.
+
+**Phase 3 — Field modules (3–4 weeks)**
+
+ 1. Inspections with real media upload and signatures.
+ 2. Transport with a real data model.
+ 3. Mobile/offline handling for site use.
+
+**Phase 4 — Value (2–3 weeks)**
+
+ 1. Real reports and exports.
+ 2. Notifications and scheduled alerts.
+ 3. Executive dashboard with trends.
+
+---
+
+## 8. Known issues in the current code
+
+Small, specific, and worth fixing whether or not the rewrite happens.
+
+| Issue                                                                 | Location                                              |
+| --------------------------------------------------------------------- | ----------------------------------------------------- |
+| `Export Report` button does nothing                                 | [app.html](src/app/app.html) header                    |
+| Transport module is hard-coded HTML with no model                     | [app.html:711-751](src/app/app.html#L711-L751)         |
+| Reports module is static text                                         | [app.html:811-845](src/app/app.html#L811-L845)         |
+| Rentals and Inspections have no CRUD                                  | [app.ts:730-779](src/app/app.ts#L730-L779)             |
+| Search box in the header is not wired to anything                     | [app.html](src/app/app.html) header                    |
+| Notifications bell is decorative                                      | [app.html](src/app/app.html) header                    |
+| Project links match on**name strings**, breaking on rename      | [app.ts:1051-1061](src/app/app.ts#L1051-L1061)         |
+| Dates are display strings;`formatDateLabel` hard-codes `Jul`      | [app.ts:1095-1107](src/app/app.ts#L1095-L1107)         |
+| `dataVersion` counter is a workaround for non-signal arrays         | [app.ts:507](src/app/app.ts#L507)                      |
+| Deletes use`window.confirm()` and are unrecoverable                 | [app.ts:1131-1133](src/app/app.ts#L1131-L1133)         |
+| Language resets to English on every reload                            | [app.ts:504](src/app/app.ts#L504)                      |
+| `routes` array is empty — no URLs, no deep links, no back button   | [app.routes.ts](src/app/app.routes.ts)                 |
+| Checks panel always reads`equipmentRequests[0]`, ignoring selection | [app.html:482-501](src/app/app.html#L482-L501)         |
+| `localStorage` writes on every change with no quota handling        | [app.ts:1173-1183](src/app/app.ts#L1173-L1183)         |
+| No lint config; Prettier configured but has no script                 | [package.json](package.json)                           |
+| CI deploys without running tests first                                | [deploy-pages.yml](.github/workflows/deploy-pages.yml) |
+
+---
+
+## 9. Summary
+
+| Question                  | Answer                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| **What is it?**     | Construction equipment ERP — UI prototype stage                                              |
+| **Language**        | TypeScript 5.9 (frontend); C# recommended for the backend                                     |
+| **Framework**       | Angular 20.3, standalone components + signals                                                 |
+| **Database**        | **None today.** PostgreSQL 16 recommended (SQL Server if the client is Microsoft-based) |
+| **Backend**         | None today. ASP.NET Core 9 Web API recommended                                                |
+| **Storage**         | `localStorage`. Move to Postgres + S3/MinIO for media                                       |
+| **Auth**            | None. Must be built before any real use                                                       |
+| **Tools**           | Angular CLI, Lucide icons, SCSS, Karma/Jasmine, GitHub Actions, GitHub Pages                  |
+| **Level**           | **1 of 5** — clickable prototype                                                       |
+| **Biggest risk**    | Everything lives in one 1,206-line component. Split it before adding features                 |
+| **Biggest gap**     | No backend, no database, no authentication                                                    |
+| **Strongest asset** | The Arabic/RTL implementation and the request→inspection flow design                         |

@@ -1,0 +1,20 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    class="shell-drawer"
+    [mode]="drawerMode()"
+    [opened]="drawerOpen()"
+    [disableClose]="drawerMode() === 'side'"
+    (closedStart)="drawerOpen.set(false)"
+  >
+    <app-sidebar-nav (navigated)="closeDrawerIfOverlay()" />
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <app-top-toolbar (menuToggled)="toggleDrawer()" (newRequestRequested)="openNewRequest()" />
+
+    <!-- Named landmark so keyboard users can jump straight to the screen. -->
+    <main class="shell-main" id="main-content" tabindex="-1">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

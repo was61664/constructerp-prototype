@@ -1,0 +1,76 @@
+<mat-toolbar class="toolbar">
+  <button
+    mat-icon-button
+    type="button"
+    class="menu-button"
+    [attr.aria-label]="i18n.t('menu')"
+    (click)="menuToggled.emit()"
+  >
+    <svg lucideMenu size="20" aria-hidden="true"></svg>
+  </button>
+
+  <!--
+    Search is presentational in this phase: there is no index to query yet.
+    It is marked disabled rather than silently inert so the state is honest
+    to both sighted and assistive-technology users.
+  -->
+  <div class="search">
+    <span class="search-icon" aria-hidden="true">
+      <svg lucideSearch size="18"></svg>
+    </span>
+    <input
+      type="search"
+      class="search-input"
+      disabled
+      [attr.aria-label]="i18n.t('search')"
+      [attr.placeholder]="i18n.t('search')"
+    />
+  </div>
+
+  <span class="spacer"></span>
+
+  <button
+    mat-icon-button
+    type="button"
+    disabled
+    [attr.aria-label]="i18n.t('notifications')"
+    [matTooltip]="i18n.t('notifications')"
+  >
+    <svg lucideBell size="20" aria-hidden="true"></svg>
+  </button>
+
+  <!--
+    aria-pressed marks this as a toggle rather than a plain action, and the
+    label names the destination state ("Switch to dark theme"), which is what
+    a screen-reader user needs to hear before activating it.
+  -->
+  <button
+    mat-icon-button
+    type="button"
+    [attr.aria-pressed]="theme.isDark()"
+    [attr.aria-label]="theme.isDark() ? i18n.t('switchToLight') : i18n.t('switchToDark')"
+    [matTooltip]="theme.isDark() ? i18n.t('switchToLight') : i18n.t('switchToDark')"
+    (click)="theme.toggle()"
+  >
+    @if (theme.isDark()) {
+      <svg lucideSun size="20" aria-hidden="true"></svg>
+    } @else {
+      <svg lucideMoon size="20" aria-hidden="true"></svg>
+    }
+  </button>
+
+  <button
+    mat-stroked-button
+    type="button"
+    class="lang-button"
+    [attr.aria-label]="i18n.t('switchLanguage')"
+    (click)="i18n.toggleLanguage()"
+  >
+    {{ i18n.t('langToggle') }}
+  </button>
+
+  <button mat-raised-button color="primary" type="button" (click)="newRequestRequested.emit()">
+    <svg lucidePlus size="16" aria-hidden="true"></svg>
+    <span>{{ i18n.t('newRequest') }}</span>
+  </button>
+</mat-toolbar>

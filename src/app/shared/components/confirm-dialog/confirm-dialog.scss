@@ -1,0 +1,16 @@
+@use 'tokens' as *;
+
+:host {
+  display: block;
+  max-inline-size: 420px;
+}
+
+p {
+  color: $text-secondary;
+  margin: 0;
+}
+
+mat-dialog-actions {
+  gap: $space-sm;
+  padding: $space-md $space-lg $space-lg;
+}

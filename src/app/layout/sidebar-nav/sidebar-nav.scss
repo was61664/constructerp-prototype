@@ -1,0 +1,125 @@
+@use 'tokens' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  background: $surface;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: 0 $space-lg;
+  block-size: $toolbar-height;
+  border-bottom: $border;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+
+  strong {
+    font-size: 15px;
+    font-weight: 700;
+    color: $text-primary;
+  }
+
+  span {
+    font-size: 11px;
+    color: $text-hint;
+  }
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-md 0 $space-lg;
+}
+
+.nav-group + .nav-group {
+  margin-block-start: $space-md;
+}
+
+.nav-group-label {
+  margin: 0;
+  padding: $space-sm $space-lg;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: $text-hint;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: 10px $space-lg;
+  color: $text-secondary;
+  text-decoration: none;
+  // Flat 3px marker on the inline start edge rather than a rounded pill —
+  // the classic SaaS sidebar treatment. Transparent by default so the text
+  // does not shift when the item becomes active.
+  border-inline-start: 3px solid transparent;
+  transition:
+    background-color $transition-fast,
+    color $transition-fast;
+
+  &:hover {
+    background: $surface-hover;
+    color: $text-primary;
+  }
+}
+
+.nav-link-active {
+  background: $brand-primary-light;
+  border-inline-start-color: $brand-primary;
+  color: $brand-primary-dark;
+
+  .nav-label {
+    font-weight: 700;
+  }
+
+  .nav-icon {
+    color: $brand-primary;
+  }
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  color: $text-hint;
+  flex-shrink: 0;
+}
+
+.nav-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nav-label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.nav-caption {
+  font-size: 11px;
+  color: $text-hint;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

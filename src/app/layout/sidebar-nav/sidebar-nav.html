@@ -1,0 +1,65 @@
+<div class="brand">
+  <img src="finesco-logo.svg" alt="" width="32" height="32" />
+  <div class="brand-text">
+    <strong>ConstructERP</strong>
+    <span>{{ i18n.t('phase') }}</span>
+  </div>
+</div>
+
+<nav class="nav" [attr.aria-label]="i18n.t('mainNavigation')">
+  @for (group of navigation.groups(); track group.id) {
+    <section class="nav-group">
+      <h2 class="nav-group-label" [id]="'nav-group-' + group.id">{{ group.label }}</h2>
+      <ul class="nav-list" [attr.aria-labelledby]="'nav-group-' + group.id">
+        @for (item of group.items; track item.id) {
+          <li>
+            <a
+              class="nav-link"
+              [routerLink]="['/', item.route]"
+              routerLinkActive="nav-link-active"
+              #link="routerLinkActive"
+              [attr.aria-current]="link.isActive ? 'page' : null"
+              (click)="navigated.emit()"
+            >
+              <span class="nav-icon" aria-hidden="true">
+                @switch (item.icon) {
+                  @case ('gauge') {
+                    <svg lucideGauge size="18"></svg>
+                  }
+                  @case ('building') {
+                    <svg lucideBuilding2 size="18"></svg>
+                  }
+                  @case ('boxes') {
+                    <svg lucideBoxes size="18"></svg>
+                  }
+                  @case ('warehouse') {
+                    <svg lucideWarehouse size="18"></svg>
+                  }
+                  @case ('clipboardList') {
+                    <svg lucideClipboardList size="18"></svg>
+                  }
+                  @case ('truck') {
+                    <svg lucideTruck size="18"></svg>
+                  }
+                  @case ('clipboardCheck') {
+                    <svg lucideClipboardCheck size="18"></svg>
+                  }
+                  @case ('money') {
+                    <svg lucideCircleDollarSign size="18"></svg>
+                  }
+                  @case ('chart') {
+                    <svg lucideChartNoAxesCombined size="18"></svg>
+                  }
+                }
+              </span>
+              <span class="nav-text">
+                <span class="nav-label">{{ item.label }}</span>
+                <span class="nav-caption">{{ item.caption }}</span>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</nav>

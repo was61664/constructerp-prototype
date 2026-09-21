@@ -1,0 +1,30 @@
+@use 'tokens' as *;
+
+:host {
+  display: block;
+  block-size: 100%;
+}
+
+.shell {
+  block-size: 100%;
+  background: $app-background;
+}
+
+.shell-drawer {
+  inline-size: $sidebar-width;
+  border-inline-end: $border;
+  // Material's drawer ships a shadow in side mode; the hairline is enough.
+  box-shadow: none;
+}
+
+.shell-content {
+  display: flex;
+  flex-direction: column;
+  background: $app-background;
+}
+
+.shell-main {
+  flex: 1;
+  min-block-size: 0;
+  outline: none;
+}

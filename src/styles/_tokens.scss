@@ -1,0 +1,198 @@
+// =============================================================================
+// Design tokens (light + dark)
+// =============================================================================
+// Surface, border, spacing and radius values that Material's theme does not
+// cover. Component stylesheets `@use 'tokens' as *;` (see the includePaths
+// entry in angular.json) instead of hard-coding hex values or pixel spacing.
+//
+// HOW THEMING WORKS HERE — read before changing a colour:
+//
+//   Every COLOUR is a CSS custom property, defined twice: light values on
+//   `:root`, dark values on `:root.theme-dark`. The SCSS variables below are
+//   thin aliases that resolve to `var(--x)`.
+//
+//   That indirection is the whole trick. SCSS variables are compile-time, so
+//   `$surface: #fff` can never change at runtime. Aliasing them to custom
+//   properties means `background: $surface` in any component compiles to
+//   `background: var(--surface)` and follows the theme — with no edits to the
+//   component stylesheets at all.
+//
+//   Consequence to respect: you CANNOT pass these through Sass colour
+//   functions (`darken()`, `rgba($surface, .5)`, `color.adjust()`) — Sass sees
+//   an opaque `var()` string, not a colour. If you need a translucent or
+//   shifted variant, add it as its own token below, in both themes.
+//
+//   Non-colour tokens (spacing, radius, dimensions) stay plain SCSS: they do
+//   not change between themes, so there is no reason to pay for a custom
+//   property.
+//
+// Colour rules encoded here, from the design brief:
+//   - App background is a light gray, card surfaces are white. That contrast is
+//     what creates depth, so cards do not need decorative shadows. The dark
+//     theme inverts the relationship, never the logic: the canvas stays darker
+//     than the surfaces sitting on it.
+//   - Cards get a 1px border OR a subtle shadow, never both.
+//   - Radius never exceeds 4px.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Light theme (default)
+// -----------------------------------------------------------------------------
+:root {
+  color-scheme: light;
+
+  // Surfaces
+  --app-background: #f5f5f5; // page canvas — never pure white
+  --surface: #ffffff; // cards, toolbar, sidebar
+  --surface-sunken: #fafafa; // table headers, inset rows
+  --surface-hover: #f5f7fa; // row hover
+  --surface-selected: #e8f1fb; // selected row (primary 50)
+
+  // Borders
+  --border-color: #e0e0e0;
+  --border-color-strong: #d0d5da;
+
+  // Text — contrast on --surface: primary 14.9:1, secondary 5.9:1, hint 4.6:1.
+  --text-primary: #212121;
+  --text-secondary: #5f6b76;
+  --text-hint: #78848f;
+  --text-inverse: #ffffff;
+
+  // Brand
+  --brand-primary: #1976d2;
+  --brand-primary-dark: #125aa6; // stronger variant (active nav text, totals)
+  --brand-primary-light: #e8f1fb; // tint (active nav background, selected row)
+
+  // Status — tinted background + dark foreground, each pair clearing 4.5:1.
+  --status-success-bg: #e6f4ea;
+  --status-success-fg: #1b5e20;
+  --status-info-bg: #e8f1fb;
+  --status-info-fg: #125aa6;
+  --status-warn-bg: #fdf3e2;
+  --status-warn-fg: #8a5300;
+  --status-danger-bg: #fdecea;
+  --status-danger-fg: #b3261e;
+  --status-neutral-bg: #eef1f4;
+  --status-neutral-fg: #455a64;
+
+  // Elevation — overlays only, never decoration on static cards.
+  --shadow-raised: 0 1px 2px rgba(15, 35, 60, 0.08);
+  --shadow-overlay: 0 2px 8px rgba(15, 35, 60, 0.16);
+  --scrim: rgba(15, 23, 32, 0.32);
+}
+
+// -----------------------------------------------------------------------------
+// Dark theme
+// -----------------------------------------------------------------------------
+// Applied by ThemeService, which always writes an explicit class on <html>
+// (resolving the OS preference itself) rather than relying on a
+// prefers-color-scheme media query. One explicit selector means Material's
+// colour styles are emitted once instead of duplicated into a media block.
+//
+// Not an inversion: the canvas stays darker than the surfaces on it, so the
+// same "white card on gray page" depth cue survives. Pure black is avoided —
+// it makes the 1px borders disappear and reads as harsh on large screens.
+:root.theme-dark {
+  color-scheme: dark;
+
+  --app-background: #121417;
+  --surface: #1b1f24;
+  --surface-sunken: #22272e;
+  --surface-hover: #242a31;
+  --surface-selected: #16304a;
+
+  --border-color: #2c333b;
+  --border-color-strong: #3a424c;
+
+  // Contrast on --surface: primary 12.6:1, secondary 7.1:1, hint 5.0:1.
+  --text-primary: #e8eaed;
+  --text-secondary: #aab3bd;
+  --text-hint: #8b95a1;
+  --text-inverse: #10151a; // sits on --brand-primary, which is light here
+
+  // The light theme's #1976D2 only reaches ~3:1 on a dark surface, so the
+  // brand hue is stepped lighter. Same blue family, legible ground.
+  --brand-primary: #64a5f0;
+  --brand-primary-dark: #94c4f7; // "stronger" means lighter once inverted
+  --brand-primary-light: #15293d; // tint becomes a deep wash
+
+  --status-success-bg: #17301f;
+  --status-success-fg: #7fe0a1;
+  --status-info-bg: #152c44;
+  --status-info-fg: #8bc3f6;
+  --status-warn-bg: #33280f;
+  --status-warn-fg: #f0c470;
+  --status-danger-bg: #3a1d1c;
+  --status-danger-fg: #f59189;
+  --status-neutral-bg: #262c34;
+  --status-neutral-fg: #b4bec9;
+
+  // Shadows carry less on a dark ground; depth comes from the borders.
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-overlay: 0 2px 10px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.6);
+}
+
+// -----------------------------------------------------------------------------
+// SCSS aliases — what component stylesheets actually reference
+// -----------------------------------------------------------------------------
+// Colours: resolve to custom properties, so they follow the active theme.
+
+$app-background: var(--app-background);
+$surface: var(--surface);
+$surface-sunken: var(--surface-sunken);
+$surface-hover: var(--surface-hover);
+$surface-selected: var(--surface-selected);
+
+$border-color: var(--border-color);
+$border-color-strong: var(--border-color-strong);
+$border: 1px solid var(--border-color);
+$border-strong: 1px solid var(--border-color-strong);
+
+$text-primary: var(--text-primary);
+$text-secondary: var(--text-secondary);
+$text-hint: var(--text-hint);
+$text-inverse: var(--text-inverse);
+
+$brand-primary: var(--brand-primary);
+$brand-primary-dark: var(--brand-primary-dark);
+$brand-primary-light: var(--brand-primary-light);
+
+$status-success-bg: var(--status-success-bg);
+$status-success-fg: var(--status-success-fg);
+$status-info-bg: var(--status-info-bg);
+$status-info-fg: var(--status-info-fg);
+$status-warn-bg: var(--status-warn-bg);
+$status-warn-fg: var(--status-warn-fg);
+$status-danger-bg: var(--status-danger-bg);
+$status-danger-fg: var(--status-danger-fg);
+$status-neutral-bg: var(--status-neutral-bg);
+$status-neutral-fg: var(--status-neutral-fg);
+
+$shadow-raised: var(--shadow-raised);
+$shadow-overlay: var(--shadow-overlay);
+$scrim: var(--scrim);
+
+// Non-colour tokens: identical in both themes, so plain SCSS.
+
+// Radius — 4px ceiling. No pills, no 12px+ "modern" rounding.
+$radius-sm: 2px;
+$radius: 4px;
+
+// Spacing — 8px scale. Page and card padding sit at 24px for the generous
+// whitespace the brief asks for.
+$space-xs: 4px;
+$space-sm: 8px;
+$space-md: 16px;
+$space-lg: 24px;
+$space-xl: 32px;
+$space-xxl: 48px;
+
+// Layout dimensions
+$sidebar-width: 264px;
+$toolbar-height: 64px;
+$content-max-width: 1600px;
+
+// Motion
+$transition-fast: 120ms ease;
+$transition: 180ms ease;

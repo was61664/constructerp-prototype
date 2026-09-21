@@ -1,0 +1,119 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="i18n.t('projectsOverview')"
+    [title]="i18n.t('projectsTitle')"
+    [subtitle]="i18n.t('projectPortfolio')"
+  >
+    <button mat-raised-button color="primary" type="button" (click)="openCreate()">
+      <svg lucidePlus size="16" aria-hidden="true"></svg>
+      <span>{{ i18n.t('addProject') }}</span>
+    </button>
+  </app-page-header>
+
+  <app-section-card [eyebrow]="i18n.t('projectPortfolio')" [title]="i18n.t('projectsTitle')" flush>
+    @if (store.projects().length) {
+      <div class="table-scroll">
+        <table mat-table [dataSource]="store.projects()" class="projects-table">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('project') }}</th>
+            <td mat-cell *matCellDef="let project">
+              <span class="primary-cell">
+                <strong>{{ i18n.text(project.name) }}</strong>
+                <span class="muted code">{{ i18n.code(project.code) }}</span>
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="client">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('client') }}</th>
+            <td mat-cell *matCellDef="let project">{{ i18n.text(project.client) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="manager">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('manager') }}</th>
+            <td mat-cell *matCellDef="let project">{{ i18n.text(project.manager) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('status') }}</th>
+            <td mat-cell *matCellDef="let project">
+              <app-status-chip [status]="project.status" [label]="i18n.text(project.status)" />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="budget">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">{{ i18n.t('budget') }}</th>
+            <td mat-cell *matCellDef="let project" class="cell-numeric">
+              {{ i18n.formatMoney(project.budget) }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="spend">
+            <th mat-header-cell *matHeaderCellDef class="spend-column">
+              {{ i18n.t('costProgress') }}
+            </th>
+            <td mat-cell *matCellDef="let project" class="spend-column">
+              <app-meter-bar
+                [label]="i18n.formatMoney(totalSpend(project))"
+                [value]="spendPercent(project)"
+                [valueLabel]="i18n.formatPercent(spendPercent(project))"
+                [dangerAbove]="90"
+              />
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="linked">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('linkedActivity') }}</th>
+            <td mat-cell *matCellDef="let project">
+              <span class="linked">
+                <span>
+                  {{ i18n.formatInteger(store.equipmentCountForProject(project.name)) }}
+                  {{ i18n.t('equipmentAssigned') }}
+                </span>
+                <span>
+                  {{ i18n.formatInteger(store.requestCountForProject(project.name)) }}
+                  {{ i18n.t('requestsLinked') }}
+                </span>
+                <span>
+                  {{ i18n.formatInteger(store.inspectionCountForProject(project.name)) }}
+                  {{ i18n.t('inspectionsLinked') }}
+                </span>
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="cell-actions">
+              <span class="visually-hidden">{{ i18n.t('actions') }}</span>
+            </th>
+            <td mat-cell *matCellDef="let project" class="cell-actions">
+              <button
+                mat-icon-button
+                type="button"
+                [attr.aria-label]="i18n.t('edit') + ' ' + i18n.text(project.name)"
+                [matTooltip]="i18n.t('edit')"
+                (click)="openEdit(project)"
+              >
+                <svg lucidePencil size="17" aria-hidden="true"></svg>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                [attr.aria-label]="i18n.t('delete') + ' ' + i18n.text(project.name)"
+                [matTooltip]="i18n.t('delete')"
+                (click)="remove(project)"
+              >
+                <svg lucideTrash2 size="17" aria-hidden="true"></svg>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+    } @else {
+      <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
+    }
+  </app-section-card>
+</div>

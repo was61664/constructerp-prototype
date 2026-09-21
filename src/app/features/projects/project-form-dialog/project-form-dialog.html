@@ -1,0 +1,82 @@
+<h2 mat-dialog-title>
+  {{ data.mode === 'create' ? i18n.t('createProject') : i18n.t('editProject') }}
+</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content>
+    <p class="hint">{{ i18n.t('crudHint') }}</p>
+
+    <div class="form-grid">
+      <mat-form-field>
+        <mat-label>{{ i18n.t('name') }}</mat-label>
+        <input matInput formControlName="name" required />
+        @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <mat-error>{{ i18n.t('name') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('projectCode') }}</mat-label>
+        <input matInput formControlName="code" required />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('client') }}</mat-label>
+        <input matInput formControlName="client" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('manager') }}</mat-label>
+        <input matInput formControlName="manager" />
+      </mat-form-field>
+
+      <mat-form-field class="span-2">
+        <mat-label>{{ i18n.t('location') }}</mat-label>
+        <input matInput formControlName="location" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('status') }}</mat-label>
+        <mat-select formControlName="status">
+          @for (status of statuses; track status) {
+            <mat-option [value]="status">{{ i18n.text(status) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('budget') }}</mat-label>
+        <input matInput type="number" min="0" formControlName="budget" />
+        <span matTextSuffix>KWD</span>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('equipmentSpend') }}</mat-label>
+        <input matInput type="number" min="0" formControlName="equipmentSpend" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('transportSpend') }}</mat-label>
+        <input matInput type="number" min="0" formControlName="transportSpend" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('extraSpend') }}</mat-label>
+        <input matInput type="number" min="0" formControlName="extraSpend" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('costProgress') }}</mat-label>
+        <input matInput type="number" min="0" max="100" formControlName="progress" />
+        <span matTextSuffix>%</span>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="dialogRef.close()">
+      {{ i18n.t('cancel') }}
+    </button>
+    <button mat-raised-button color="primary" type="submit">{{ i18n.t('save') }}</button>
+  </mat-dialog-actions>
+</form>
