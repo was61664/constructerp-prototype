@@ -1,9 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 
 import { App } from './app';
 import { routes } from './app.routes';
+import type { EquipmentDto, ProjectDto, SaveEquipmentRequest } from './core/data/api-contracts';
+import { ErpGateway } from './core/data/erp-gateway';
 import { ErpStore } from './core/services/erp-store';
 import { I18nService } from './core/services/i18n';
 import { ExportService } from './core/services/export';
@@ -12,13 +15,113 @@ import { SearchService } from './core/services/search';
 import { ThemeService } from './core/services/theme';
 import { BusyState } from './shared/utils/busy-state';
 
+/**
+ * In-memory stand-in for the API.
+ *
+ * The store is HTTP-backed now, so suites that reach it exercise mapping and
+ * CRUD without a live backend. Writes actually mutate the fake's state —
+ * returning the row unchanged made derived-state tests pass for the wrong
+ * reason.
+ */
+class FakeGateway {
+  hasApi = true;
+
+  projects: ProjectDto[] = [
+    {
+      id: 'p1',
+      code: 'PRJ-1001',
+      name: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+      client: { en: 'Finesco', ar: 'فينسكو' },
+      manager: 'M. Hassan',
+      location: { en: 'East Gate', ar: 'البوابة الشرقية' },
+      status: 'Active',
+      budget: 260000,
+      progress: 76,
+      startDate: null,
+      endDate: null,
+      equipmentSpend: 1,
+      transportSpend: 2,
+      extraSpend: 3,
+      equipmentCount: 1,
+    },
+  ];
+
+  equipment: EquipmentDto[] = [
+    {
+      id: 'e1',
+      code: 'EQ-104',
+      name: { en: 'Crawler Crane 80T', ar: 'ونش زاحف 80 طن' },
+      equipmentTypeId: 't1',
+      equipmentType: { en: 'Lifting', ar: 'رفع' },
+      ownership: 'Owned',
+      projectId: 'p1',
+      projectCode: 'PRJ-1001',
+      projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+      status: 'Idle',
+      utilization: 86,
+      dailyCost: 1250,
+      nextAction: { en: 'Inspect', ar: 'تفتيش' },
+    },
+  ];
+
+  lastSaved: SaveEquipmentRequest | null = null;
+
+  getProjects = () => Promise.resolve(this.projects);
+
+  getEquipment = () => Promise.resolve(this.equipment);
+
+  getEquipmentTypes = () =>
+    Promise.resolve([{ id: 't1', code: 'LIFT', name: { en: 'Lifting', ar: 'رفع' } }]);
+
+  createEquipment = (request: SaveEquipmentRequest) => {
+    this.lastSaved = request;
+    const created: EquipmentDto = { ...this.equipment[0], ...this.merge(request), id: 'e2' };
+    this.equipment = [created, ...this.equipment];
+    return Promise.resolve(created);
+  };
+
+  updateEquipment = (id: string, request: SaveEquipmentRequest) => {
+    this.lastSaved = request;
+    const index = this.equipment.findIndex((item) => item.id === id);
+    const updated: EquipmentDto = { ...this.equipment[index], ...this.merge(request) };
+    this.equipment = this.equipment.map((item, i) => (i === index ? updated : item));
+    return Promise.resolve(updated);
+  };
+
+  deleteEquipment = (id: string) => {
+    this.equipment = this.equipment.filter((item) => item.id !== id);
+    return Promise.resolve();
+  };
+
+  createProject = () => Promise.resolve(this.projects[0]);
+  updateProject = () => Promise.resolve(this.projects[0]);
+  deleteProject = () => Promise.resolve();
+
+  readLocal = <T>(_key: string, fallback: readonly T[]) => [...fallback];
+  commitLocal = () => Promise.resolve();
+
+  private merge(request: SaveEquipmentRequest): Partial<EquipmentDto> {
+    return {
+      code: request.code,
+      name: request.name,
+      equipmentTypeId: request.equipmentTypeId,
+      ownership: request.ownership,
+      projectId: request.projectId,
+      status: request.status,
+      utilization: request.utilization,
+      dailyCost: request.dailyCost,
+      nextAction: request.nextAction,
+    };
+  }
+}
+
 describe('App shell', () => {
   beforeEach(async () => {
     localStorage.clear();
 
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes), provideNoopAnimations()],
+      providers: [provideRouter(routes), provideNoopAnimations(), provideHttpClient()],
     }).compileComponents();
   });
 
@@ -194,7 +297,8 @@ describe('ThemeService', () => {
 describe('SearchService', () => {
   beforeEach(() => {
     localStorage.clear();
-    TestBed.configureTestingModule({});
+    // SearchService -> ErpStore -> ErpGateway -> HttpClient.
+    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
   });
 
   afterEach(() => localStorage.clear());
@@ -250,9 +354,13 @@ describe('SearchService', () => {
 });
 
 describe('NotificationsService', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [{ provide: ErpGateway, useValue: new FakeGateway() }],
+    });
+
+    await TestBed.inject(ErpStore).load();
   });
 
   afterEach(() => localStorage.clear());
@@ -441,80 +549,73 @@ describe('BusyState', () => {
 });
 
 describe('ErpStore', () => {
-  beforeEach(() => {
+  let gateway: FakeGateway;
+
+  beforeEach(async () => {
     localStorage.clear();
-    TestBed.configureTestingModule({});
+    gateway = new FakeGateway();
+    TestBed.configureTestingModule({
+      providers: [{ provide: ErpGateway, useValue: gateway }],
+    });
+
+    await TestBed.inject(ErpStore).load();
   });
 
   afterEach(() => localStorage.clear());
 
-  it('should derive fleet totals from equipment', () => {
+  it('should map API DTOs into English view models', () => {
     const store = TestBed.inject(ErpStore);
-    const totals = store.totals();
 
-    expect(totals.total).toBe(store.equipment().length);
-    expect(totals.rented).toBe(
-      store.equipment().filter((item) => item.ownership === 'External Rental').length,
-    );
+    expect(store.equipment()[0].name).toBe('Crawler Crane 80T');
+    expect(store.equipment()[0].type).toBe('Lifting');
+    expect(store.projects()[0].name).toBe('Downtown Tower');
   });
 
-  it('should recompute totals after a create, with no manual invalidation', async () => {
+  it('should re-derive names in Arabic without refetching', () => {
     const store = TestBed.inject(ErpStore);
-    const before = store.totals().total;
+    TestBed.inject(I18nService).toggleLanguage();
 
-    await store.createEquipment({
-      id: store.nextEquipmentId(),
-      name: 'Test Rig',
-      type: 'Lifting',
-      ownership: 'Owned',
-      project: 'Downtown Tower',
-      status: 'Working',
-      utilization: 50,
-      dailyCost: 100,
-      nextAction: '',
-    });
-
-    expect(store.totals().total).toBe(before + 1);
+    // The whole point of holding DTOs: switching language is a re-map, not a
+    // round trip.
+    expect(store.equipment()[0].name).toBe('ونش زاحف 80 طن');
+    expect(store.projects()[0].name).toBe('برج وسط المدينة');
   });
 
-  it('should keep a selection valid after the selected asset is deleted', async () => {
+  it('should count linked equipment by project ID, not name', () => {
     const store = TestBed.inject(ErpStore);
-    const selected = store.selectedEquipmentId();
 
-    await store.deleteEquipment(selected);
-
-    expect(store.selectedEquipmentId()).not.toBe(selected);
-    expect(store.selectedEquipment()).toBeTruthy();
+    expect(store.equipmentCountForProject('p1')).toBe(1);
+    // A project name must no longer match anything — that was the old bug.
+    expect(store.equipmentCountForProject('Downtown Tower')).toBe(0);
   });
 
-  it('should apply the change to state before the commit resolves', async () => {
+  it('should preserve the other language when saving an edit', async () => {
     const store = TestBed.inject(ErpStore);
-    const before = store.totals().total;
+    TestBed.inject(I18nService).toggleLanguage();
 
-    // Not awaited yet: the table should already reflect the change while the
-    // button is still showing its gear.
-    const pending = store.createEquipment({
-      id: store.nextEquipmentId(),
-      name: 'Optimistic Rig',
-      type: 'Lifting',
-      ownership: 'Owned',
-      project: 'Downtown Tower',
-      status: 'Working',
-      utilization: 10,
-      dailyCost: 10,
-      nextAction: '',
-    });
+    const asset = store.equipment()[0];
+    await store.updateEquipment(asset.id, { ...asset, name: 'اسم جديد' });
 
-    expect(store.totals().total).toBe(before + 1);
-    await pending;
-    expect(store.totals().total).toBe(before + 1);
+    // Editing in Arabic must not wipe the English name, or half the record is
+    // silently destroyed on every save.
+    const saved = gateway.lastSaved as { name: { en: string; ar: string } };
+    expect(saved.name.ar).toBe('اسم جديد');
+    expect(saved.name.en).toBe('Crawler Crane 80T');
   });
 
-  it('should allocate sequential ids per entity', () => {
+  it('should derive fleet totals from the loaded equipment', () => {
+    const store = TestBed.inject(ErpStore);
+
+    expect(store.totals().total).toBe(1);
+    expect(store.totals().idle).toBe(1);
+    expect(store.totals().dailySpend).toBe(1250);
+  });
+
+  it('should allocate sequential codes per entity', () => {
     const store = TestBed.inject(ErpStore);
 
     expect(store.nextProjectCode()).toMatch(/^PRJ-\d{4}$/);
-    expect(store.nextEquipmentId()).toMatch(/^EQ-\d{4}$/);
+    expect(store.nextEquipmentCode()).toMatch(/^EQ-\d{4}$/);
     expect(store.nextRequestId()).toMatch(/^REQ-\d{4}$/);
   });
 });

@@ -71,9 +71,11 @@ export class EquipmentPage {
     'actions',
   ] as const;
 
-  private readonly projectNames = computed(() =>
-    this.store.projects().map((project) => project.name),
-  );
+  /** Options for the project and type selects in the form dialog. */
+  private readonly formOptions = computed(() => ({
+    projects: this.store.projects().map((project) => ({ id: project.id, name: project.name })),
+    types: this.store.equipmentTypes(),
+  }));
 
   protected fieldsFor(item: Equipment): RecordField[] {
     return [
@@ -97,11 +99,14 @@ export class EquipmentPage {
 
   protected async openCreate(): Promise<void> {
     const blank: Equipment = {
-      id: this.store.nextEquipmentId(),
+      id: '',
+      code: this.store.nextEquipmentCode(),
       name: '',
+      equipmentTypeId: this.store.equipmentTypes()[0]?.id ?? '',
       type: '',
       ownership: 'Owned',
-      project: this.projectNames()[0] ?? '',
+      projectId: this.store.projects()[0]?.id ?? null,
+      project: '',
       status: 'Working',
       utilization: 0,
       dailyCost: 0,
@@ -111,7 +116,7 @@ export class EquipmentPage {
     const result = await this.openDialog({
       mode: 'create',
       equipment: blank,
-      projectNames: this.projectNames(),
+      ...this.formOptions(),
     });
 
     if (result) {
@@ -120,11 +125,7 @@ export class EquipmentPage {
   }
 
   protected async openEdit(item: Equipment): Promise<void> {
-    const result = await this.openDialog({
-      mode: 'edit',
-      equipment: item,
-      projectNames: this.projectNames(),
-    });
+    const result = await this.openDialog({ mode: 'edit', equipment: item, ...this.formOptions() });
 
     if (result) {
       await this.busy.run(item.id, () => this.store.updateEquipment(item.id, result));

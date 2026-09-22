@@ -6,13 +6,24 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
-import type { Equipment, EquipmentStatus, Ownership } from '../../../core/models';
+import type {
+  Equipment,
+  EquipmentStatus,
+  EquipmentTypeOption,
+  Ownership,
+} from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n';
+
+export interface EquipmentProjectOption {
+  id: string;
+  name: string;
+}
 
 export interface EquipmentFormData {
   mode: 'create' | 'edit';
   equipment: Equipment;
-  projectNames: readonly string[];
+  projects: readonly EquipmentProjectOption[];
+  types: readonly EquipmentTypeOption[];
 }
 
 const OWNERSHIPS: readonly Ownership[] = ['Owned', 'External Rental'];
@@ -51,11 +62,12 @@ export class EquipmentFormDialog {
   protected readonly statuses = EQUIPMENT_STATUSES;
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    id: [this.data.equipment.id, Validators.required],
+    code: [this.data.equipment.code, Validators.required],
     name: [this.data.equipment.name, Validators.required],
-    type: [this.data.equipment.type],
+    equipmentTypeId: [this.data.equipment.equipmentTypeId, Validators.required],
     ownership: [this.data.equipment.ownership],
-    project: [this.data.equipment.project],
+    // Nullable: an asset can sit in the yard unassigned.
+    projectId: [this.data.equipment.projectId],
     status: [this.data.equipment.status],
     utilization: [this.data.equipment.utilization, [Validators.min(0), Validators.max(100)]],
     dailyCost: [this.data.equipment.dailyCost, Validators.min(0)],
@@ -69,13 +81,24 @@ export class EquipmentFormDialog {
     }
 
     const value = this.form.getRawValue();
+    const project = this.data.projects.find((option) => option.id === value.projectId);
+    const type = this.data.types.find((option) => option.id === value.equipmentTypeId);
 
-    // Clamp rather than reject: a typed 120% is an obvious slip, not a reason
-    // to block the save.
     this.dialogRef.close({
-      ...value,
+      ...this.data.equipment,
+      code: value.code,
+      name: value.name,
+      equipmentTypeId: value.equipmentTypeId,
+      type: type?.name ?? '',
+      ownership: value.ownership,
+      projectId: value.projectId,
+      project: project?.name ?? '',
+      status: value.status,
+      // Clamp rather than reject: a typed 120% is an obvious slip, not a
+      // reason to block the save.
       utilization: Math.min(100, Math.max(0, Math.round(value.utilization))),
       dailyCost: Math.max(0, value.dailyCost),
+      nextAction: value.nextAction,
     });
   }
 }

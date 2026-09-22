@@ -60,6 +60,8 @@ export class ProjectFormDialog {
       return;
     }
 
-    this.dialogRef.close(this.form.getRawValue());
+    // Spread the original so id (and anything else not on the form)
+    // survives the round trip.
+    this.dialogRef.close({ ...this.data.project, ...this.form.getRawValue() });
   }
 }

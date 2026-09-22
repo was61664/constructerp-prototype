@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 
+import { ErpStore } from './core/services/erp-store';
 import { Shell } from './layout/shell/shell';
 
 /**
@@ -14,4 +15,12 @@ import { Shell } from './layout/shell/shell';
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App {}
+export class App implements OnInit {
+  private readonly store = inject(ErpStore);
+
+  ngOnInit(): void {
+    // Fire and forget: the store records a load failure and keeps its seeded
+    // fallback, so a missing API degrades rather than blanking the screen.
+    void this.store.load();
+  }
+}

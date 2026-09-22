@@ -76,7 +76,7 @@ export class Projects {
       },
       {
         label: this.i18n.t('equipmentAssigned'),
-        value: this.i18n.formatInteger(this.store.equipmentCountForProject(project.name)),
+        value: this.i18n.formatInteger(this.store.equipmentCountForProject(project.id)),
       },
       {
         label: this.i18n.t('requestsLinked'),
@@ -96,6 +96,7 @@ export class Projects {
 
   protected async openCreate(): Promise<void> {
     const blank: ProjectRecord = {
+      id: '',
       name: '',
       code: this.store.nextProjectCode(),
       client: '',
@@ -120,13 +121,13 @@ export class Projects {
     const result = await this.openDialog({ mode: 'edit', project });
 
     if (result) {
-      await this.busy.run(project.code, () => this.store.updateProject(project.code, result));
+      await this.busy.run(project.id, () => this.store.updateProject(project.id, result));
     }
   }
 
   protected async remove(project: ProjectRecord): Promise<void> {
     if (await this.confirmService.confirmDelete(this.i18n.text(project.name))) {
-      await this.busy.run(`delete:${project.code}`, () => this.store.deleteProject(project.code));
+      await this.busy.run(`delete:${project.id}`, () => this.store.deleteProject(project.id));
     }
   }
 

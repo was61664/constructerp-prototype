@@ -4,6 +4,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_DIALOG_DEFAULT_OPTIONS, MatDialogConfig } from '@angular/material/dialog';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
@@ -31,6 +32,9 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'top' }),
     ),
     provideAnimationsAsync(),
+    // withFetch: uses the Fetch API rather than XHR, which is the modern
+    // default and gives better streaming and abort behaviour.
+    provideHttpClient(withFetch()),
     { provide: DEFAULT_CURRENCY_CODE, useValue: 'KWD' },
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: formFieldDefaults },
     { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: dialogDefaults },

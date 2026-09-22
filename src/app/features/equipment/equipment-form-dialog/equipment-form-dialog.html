@@ -9,7 +9,7 @@
     <div class="form-grid">
       <mat-form-field>
         <mat-label>{{ i18n.t('code') }}</mat-label>
-        <input matInput formControlName="id" required />
+        <input matInput formControlName="code" required />
       </mat-form-field>
 
       <mat-form-field>
@@ -19,7 +19,11 @@
 
       <mat-form-field>
         <mat-label>{{ i18n.t('type') }}</mat-label>
-        <input matInput formControlName="type" />
+        <mat-select formControlName="equipmentTypeId" required>
+          @for (type of data.types; track type.id) {
+            <mat-option [value]="type.id">{{ type.name }}</mat-option>
+          }
+        </mat-select>
       </mat-form-field>
 
       <mat-form-field>
@@ -33,9 +37,11 @@
 
       <mat-form-field>
         <mat-label>{{ i18n.t('project') }}</mat-label>
-        <mat-select formControlName="project">
-          @for (project of data.projectNames; track project) {
-            <mat-option [value]="project">{{ i18n.text(project) }}</mat-option>
+        <mat-select formControlName="projectId">
+          <!-- Unassigned is a real state, not a missing value. -->
+          <mat-option [value]="null">{{ i18n.t('noRecords') }}</mat-option>
+          @for (project of data.projects; track project.id) {
+            <mat-option [value]="project.id">{{ project.name }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
