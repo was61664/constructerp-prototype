@@ -443,8 +443,9 @@ p {
 }
 
 ::-webkit-scrollbar {
-  inline-size: 8px;
-  block-size: 8px;
+  // A hairline, not a slab: 8px read as a solid blue bar down the page.
+  inline-size: 4px;
+  block-size: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -454,6 +455,9 @@ p {
 ::-webkit-scrollbar-thumb {
   background: $scrollbar-thumb;
   border-radius: 999px;
+  // Slightly recessed at rest so it reads as a line rather than a fill, and
+  // resolves to full strength when the user actually reaches for it.
+  opacity: 0.85;
 
   &:hover {
     background: $scrollbar-thumb-hover;
