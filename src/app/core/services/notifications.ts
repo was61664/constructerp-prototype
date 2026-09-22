@@ -111,16 +111,22 @@ export class NotificationsService {
     }
   }
 
-  /** Overdue rentals cost money every day they are not returned. */
+  /**
+   * Overdue rentals cost money every day they are not returned.
+   *
+   * The status these are filtered on is derived by the API from the return
+   * date, so this badge counts hires that are actually late. It previously
+   * counted the ones somebody had got around to marking.
+   */
   private overdueRentals(): Omit<AppNotification, 'read'>[] {
     return this.store
       .rentals()
       .filter((rental) => rental.status === 'Overdue')
       .map((rental) => ({
-        key: `rental-overdue:${rental.vendor}:${rental.asset}`,
+        key: `rental-overdue:${rental.id}`,
         tone: 'danger' as const,
         title: this.i18n.format('notifyOverdueRental', { asset: this.i18n.text(rental.asset) }),
-        detail: `${this.i18n.text(rental.vendor)} · ${this.i18n.formatDateLabel(rental.returnDate)}`,
+        detail: `${this.i18n.text(rental.vendor)} · ${this.i18n.formatIsoDate(rental.returnDate)}`,
         route: '/rentals',
       }));
   }

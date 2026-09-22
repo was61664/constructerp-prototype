@@ -8,10 +8,13 @@ import { routes } from './app.routes';
 import type {
   EquipmentDto,
   ProjectDto,
+  RentalDto,
   RequestDto,
   SaveEquipmentRequest,
+  VendorDto,
 } from './core/data/api-contracts';
 import { ErpGateway } from './core/data/erp-gateway';
+import { deriveRentalStatus } from './core/models';
 import { ErpStore } from './core/services/erp-store';
 import { I18nService } from './core/services/i18n';
 import { ExportService } from './core/services/export';
@@ -28,6 +31,45 @@ import { BusyState } from './shared/utils/busy-state';
  * returning the row unchanged made derived-state tests pass for the wrong
  * reason.
  */
+function isoOffset(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Mirrors the API: status follows the dates, it is never passed in. */
+function rederive(row: Omit<RentalDto, 'status' | 'daysOverdue'>): RentalDto {
+  const today = isoOffset(0);
+  const late = !row.returnedOn && row.expectedReturnOn < today;
+
+  return {
+    ...row,
+    status: deriveRentalStatus(row.expectedReturnOn, row.returnBookedOn, row.returnedOn, today),
+    daysOverdue: late
+      ? Math.round((Date.parse(today) - Date.parse(row.expectedReturnOn)) / 86_400_000)
+      : 0,
+  };
+}
+
+function fakeRental(id: string, dueOffset: number, bookedOffset: number | null): RentalDto {
+  return rederive({
+    id,
+    code: `RNT-${id}`,
+    vendorId: 'v1',
+    vendorName: { en: 'Delta Heavy Rentals', ar: 'دلتا لتأجير المعدات الثقيلة' },
+    equipmentId: 'e1',
+    equipmentCode: 'EQ-104',
+    equipmentName: { en: 'Crawler Crane 80T', ar: 'ونش زاحف 80 طن' },
+    projectId: 'p1',
+    projectCode: 'PRJ-1001',
+    projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+    startedOn: isoOffset(-40),
+    expectedReturnOn: isoOffset(dueOffset),
+    returnBookedOn: bookedOffset === null ? null : isoOffset(bookedOffset),
+    returnedOn: null,
+    amount: 1000,
+    notes: { en: '', ar: null },
+  });
+}
+
 class FakeGateway {
   hasApi = true;
 
@@ -108,6 +150,60 @@ class FakeGateway {
   requests: RequestDto[] = [];
 
   getRequests = () => Promise.resolve(this.requests);
+
+  /**
+   * Rentals carry dates only, exactly as the API does. The status on each row
+   * below is derived from those dates rather than chosen, so these fixtures
+   * cannot drift into the contradiction the backend change removed.
+   */
+  rentals: RentalDto[] = [
+    fakeRental('r1', -12, null),
+    fakeRental('r2', 9, null),
+    fakeRental('r3', 5, -1),
+  ];
+
+  vendors: VendorDto[] = [
+    {
+      id: 'v1',
+      code: 'VEN-001',
+      name: { en: 'Delta Heavy Rentals', ar: 'دلتا لتأجير المعدات الثقيلة' },
+      contactName: 'K. Mansour',
+      phone: '+965 2222 1180',
+      email: 'hire@deltaheavy.com.kw',
+      rentalCount: 3,
+      openRentalCount: 3,
+      totalSpend: 3000,
+    },
+  ];
+
+  getRentals = () => Promise.resolve(this.rentals);
+
+  getVendors = () => Promise.resolve(this.vendors);
+
+  /** Records the return and re-derives, exactly as the API would. */
+  returnRental = (id: string, returnedOn: string | null) => {
+    const index = this.rentals.findIndex((item) => item.id === id);
+    const updated = rederive({
+      ...this.rentals[index],
+      returnedOn: returnedOn ?? isoOffset(0),
+    });
+
+    this.rentals = this.rentals.map((item, i) => (i === index ? updated : item));
+
+    return Promise.resolve(updated);
+  };
+
+  bookRentalReturn = (id: string, bookedOn: string | null) => {
+    const index = this.rentals.findIndex((item) => item.id === id);
+    const updated = rederive({
+      ...this.rentals[index],
+      returnBookedOn: bookedOn ?? isoOffset(0),
+    });
+
+    this.rentals = this.rentals.map((item, i) => (i === index ? updated : item));
+
+    return Promise.resolve(updated);
+  };
 
   private merge(request: SaveEquipmentRequest): Partial<EquipmentDto> {
     return {
@@ -359,6 +455,90 @@ describe('SearchService', () => {
     for (const group of search.groups()) {
       expect(group.results.length).toBeLessThanOrEqual(4);
     }
+  });
+});
+
+describe('Rentals', () => {
+  let gateway: FakeGateway;
+
+  beforeEach(async () => {
+    localStorage.clear();
+    gateway = new FakeGateway();
+    TestBed.configureTestingModule({
+      providers: [{ provide: ErpGateway, useValue: gateway }],
+    });
+
+    await TestBed.inject(ErpStore).load();
+  });
+
+  afterEach(() => localStorage.clear());
+
+  it('should read overdue from the return date rather than a stored value', () => {
+    const rentals = TestBed.inject(ErpStore).rentals();
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Every row's status is checkable against the dates on the row itself.
+    // Under the old model a status could say anything at all.
+    for (const rental of rentals) {
+      const expected = rental.returnedOn
+        ? 'Returned'
+        : rental.returnDate < today
+          ? 'Overdue'
+          : rental.returnBookedOn
+            ? 'Return Scheduled'
+            : 'Active';
+
+      expect(rental.status).toBe(expected);
+    }
+
+    expect(rentals.filter((rental) => rental.status === 'Overdue').length).toBe(1);
+  });
+
+  it('should clear an overdue rental by recording the return, not by editing a status', async () => {
+    const store = TestBed.inject(ErpStore);
+    const overdue = store.rentals().find((rental) => rental.status === 'Overdue');
+
+    expect(overdue).toBeTruthy();
+    expect(overdue!.daysOverdue).toBeGreaterThan(0);
+
+    await store.returnRental(overdue!.id);
+
+    const after = store.rentals().find((rental) => rental.id === overdue!.id);
+
+    expect(after!.status).toBe('Returned');
+    expect(after!.daysOverdue).toBe(0);
+    expect(store.rentals().filter((rental) => rental.status === 'Overdue').length).toBe(0);
+  });
+
+  it('should keep a booked return overdue once its due date has passed', async () => {
+    const store = TestBed.inject(ErpStore);
+    const active = store.rentals().find((rental) => rental.status === 'Active');
+
+    await store.bookRentalReturn(active!.id);
+
+    expect(store.rentals().find((r) => r.id === active!.id)!.status).toBe('Return Scheduled');
+
+    // The collection was booked but never happened, and the due date has now
+    // passed. It must go back to being chased rather than hide as scheduled.
+    gateway.rentals = gateway.rentals.map((rental) =>
+      rental.id === active!.id ? rederive({ ...rental, expectedReturnOn: isoOffset(-2) }) : rental,
+    );
+    await store.load();
+
+    const late = store.rentals().find((rental) => rental.id === active!.id);
+
+    expect(late!.status).toBe('Overdue');
+    expect(late!.returnBookedOn).not.toBeNull();
+  });
+
+  it('should localise the vendor name without refetching', () => {
+    const store = TestBed.inject(ErpStore);
+
+    expect(store.rentals()[0].vendor).toBe('Delta Heavy Rentals');
+
+    TestBed.inject(I18nService).toggleLanguage();
+
+    expect(store.rentals()[0].vendor).toBe('دلتا لتأجير المعدات الثقيلة');
   });
 });
 

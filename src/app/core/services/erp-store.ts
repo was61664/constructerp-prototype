@@ -5,10 +5,12 @@ import type {
   EquipmentTypeDto,
   LocalizedTextDto,
   ProjectDto,
+  RentalDto,
   RequestDto,
   SaveEquipmentRequest,
   SaveProjectRequest,
   SaveRequestRequest,
+  VendorDto,
 } from '../data/api-contracts';
 import { ErpGateway } from '../data/erp-gateway';
 import {
@@ -17,6 +19,7 @@ import {
   SEED_PROJECTS,
   SEED_RENTALS,
   SEED_TRANSPORT,
+  SEED_VENDORS,
 } from '../data/mock-data';
 import type {
   Equipment,
@@ -27,6 +30,7 @@ import type {
   ProjectRecord,
   Rental,
   TransportMove,
+  Vendor,
 } from '../models';
 import { I18nService } from './i18n';
 
@@ -39,9 +43,9 @@ import { I18nService } from './i18n';
  * Arabic re-derives the names from data already in memory rather than
  * refetching every list.
  *
- * Requests, rentals, inspections and transport still come from localStorage —
- * those endpoints do not exist yet. The backend is being migrated one module at
- * a time and this class is where the halves meet.
+ * Inspections and transport still come from localStorage — those endpoints do
+ * not exist yet. The backend is being migrated one module at a time and this
+ * class is where the halves meet.
  */
 @Injectable({ providedIn: 'root' })
 export class ErpStore {
@@ -53,6 +57,8 @@ export class ErpStore {
   private readonly equipmentDtos = signal<EquipmentDto[]>([...SEED_EQUIPMENT]);
   private readonly equipmentTypeDtos = signal<EquipmentTypeDto[]>([]);
   private readonly requestDtos = signal<RequestDto[]>([]);
+  private readonly rentalDtos = signal<RentalDto[]>([...SEED_RENTALS]);
+  private readonly vendorDtos = signal<VendorDto[]>([...SEED_VENDORS]);
 
   private readonly loadingSignal = signal(false);
   private readonly loadErrorSignal = signal<string | null>(null);
@@ -146,8 +152,50 @@ export class ErpStore {
     })),
   );
 
+  /**
+   * Note that `status` is carried straight through from the DTO.
+   *
+   * It is derived server-side from the rental's dates on every read, so there
+   * is deliberately nothing here that computes or overrides it — recomputing
+   * it in the browser would be a second implementation to drift.
+   */
+  readonly rentals = computed<Rental[]>(() =>
+    this.rentalDtos().map((dto) => ({
+      id: dto.id,
+      code: dto.code,
+      vendorId: dto.vendorId,
+      vendor: this.pick(dto.vendorName),
+      equipmentId: dto.equipmentId,
+      assetCode: dto.equipmentCode,
+      asset: this.pick(dto.equipmentName),
+      projectId: dto.projectId,
+      project: dto.projectName ? this.pick(dto.projectName) : '',
+      startedOn: dto.startedOn,
+      returnDate: dto.expectedReturnOn,
+      returnBookedOn: dto.returnBookedOn,
+      returnedOn: dto.returnedOn,
+      amount: dto.amount,
+      status: dto.status,
+      daysOverdue: dto.daysOverdue,
+      notes: this.pick(dto.notes),
+    })),
+  );
+
+  readonly vendors = computed<Vendor[]>(() =>
+    this.vendorDtos().map((dto) => ({
+      id: dto.id,
+      code: dto.code,
+      name: this.pick(dto.name),
+      contactName: dto.contactName,
+      phone: dto.phone,
+      email: dto.email,
+      rentalCount: dto.rentalCount,
+      openRentalCount: dto.openRentalCount,
+      totalSpend: dto.totalSpend,
+    })),
+  );
+
   // --- Entities still held locally ------------------------------------------
-  readonly rentals = signal<Rental[]>([...SEED_RENTALS]).asReadonly();
   readonly inspections = signal<Inspection[]>([...SEED_INSPECTIONS]).asReadonly();
   readonly transportMoves = signal<TransportMove[]>([...SEED_TRANSPORT]).asReadonly();
 
@@ -218,17 +266,21 @@ export class ErpStore {
     this.loadErrorSignal.set(null);
 
     try {
-      const [projects, equipment, types, requests] = await Promise.all([
+      const [projects, equipment, types, requests, rentals, vendors] = await Promise.all([
         this.gateway.getProjects(),
         this.gateway.getEquipment(),
         this.gateway.getEquipmentTypes(),
         this.gateway.getRequests(),
+        this.gateway.getRentals(),
+        this.gateway.getVendors(),
       ]);
 
       this.projectDtos.set(projects);
       this.equipmentDtos.set(equipment);
       this.equipmentTypeDtos.set(types);
       this.requestDtos.set(requests);
+      this.rentalDtos.set(rentals);
+      this.vendorDtos.set(vendors);
 
       if (!this.selectedEquipmentIdSignal() && equipment.length) {
         this.selectedEquipmentIdSignal.set(equipment[0].id);
@@ -370,6 +422,42 @@ export class ErpStore {
       requests.some((item) => item.id === request.id)
         ? requests.map((item) => (item.id === request.id ? request : item))
         : [request, ...requests],
+    );
+  }
+
+  // --- Rentals --------------------------------------------------------------
+
+  /**
+   * Books a collection, and records one happening.
+   *
+   * There is no `setRentalStatus` alongside these, and there should never be.
+   * A rental goes overdue when its return date passes and stops being overdue
+   * when the return is recorded — both endpoints return the re-derived row, so
+   * the screen updates from the same source that decided it.
+   */
+  async bookRentalReturn(id: string, bookedOn: string | null = null): Promise<void> {
+    this.upsertRental(await this.gateway.bookRentalReturn(id, bookedOn));
+  }
+
+  async returnRental(id: string, returnedOn: string | null = null): Promise<void> {
+    this.upsertRental(await this.gateway.returnRental(id, returnedOn));
+
+    // The asset is back in the yard, so its own status may have moved with it.
+    this.equipmentDtos.set(await this.gateway.getEquipment());
+  }
+
+  async deleteRental(id: string): Promise<void> {
+    await this.gateway.deleteRental(id);
+
+    this.rentalDtos.update((rentals) => rentals.filter((item) => item.id !== id));
+    this.vendorDtos.set(await this.gateway.getVendors());
+  }
+
+  private upsertRental(rental: RentalDto): void {
+    this.rentalDtos.update((rentals) =>
+      rentals.some((item) => item.id === rental.id)
+        ? rentals.map((item) => (item.id === rental.id ? rental : item))
+        : [rental, ...rentals],
     );
   }
 

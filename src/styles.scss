@@ -233,9 +233,16 @@ p {
   background: $surface;
 }
 
+// Matches app-meter-bar and the scrollbars: a hairline, not a slab. The MDC
+// track height is driven by a custom property — setting `height` alone leaves
+// the inner bar elements at their original size and the bar looks unchanged.
 .mat-mdc-progress-bar {
-  border-radius: $radius-sm;
-  height: 6px;
+  --mdc-linear-progress-track-height: 4px;
+  --mdc-linear-progress-active-indicator-height: 4px;
+
+  border-radius: 999px;
+  height: 4px;
+  overflow: hidden;
 }
 
 // Notifications panel. Same reason as the theme menu below: the panel renders

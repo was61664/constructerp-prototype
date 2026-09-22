@@ -136,7 +136,7 @@ export class SearchService {
       )
       .slice(0, MAX_PER_GROUP)
       .map((rental) => ({
-        key: `rentals:${rental.vendor}:${rental.asset}`,
+        key: `rentals:${rental.id}`,
         module: 'rentals' as const,
         route: '/rentals',
         title: this.i18n.text(rental.vendor),

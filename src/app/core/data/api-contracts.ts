@@ -1,5 +1,6 @@
 import type { EquipmentStatus, Ownership } from '../models/equipment';
 import type { ProjectStatus } from '../models/project';
+import type { RentalStatus } from '../models/rental';
 import type { RequestStage, RequestStatus } from '../models/equipment-request';
 
 /**
@@ -139,4 +140,63 @@ export interface SaveRequestRequest {
   location: LocalizedTextDto;
   purpose: LocalizedTextDto;
   estimatedCost: number;
+}
+
+export interface VendorDto {
+  id: string;
+  code: string;
+  name: LocalizedTextDto;
+  contactName: string;
+  phone: string;
+  email: string;
+  rentalCount: number;
+  openRentalCount: number;
+  /** Summed from the vendor's rentals by the API, never stored. */
+  totalSpend: number;
+}
+
+export interface SaveVendorRequest {
+  code: string;
+  name: LocalizedTextDto;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+}
+
+export interface RentalDto {
+  id: string;
+  code: string;
+  vendorId: string;
+  vendorName: LocalizedTextDto;
+  equipmentId: string;
+  equipmentCode: string;
+  equipmentName: LocalizedTextDto;
+  projectId: string | null;
+  projectCode: string | null;
+  projectName: LocalizedTextDto | null;
+  startedOn: string;
+  expectedReturnOn: string;
+  returnBookedOn: string | null;
+  returnedOn: string | null;
+  amount: number;
+  notes: LocalizedTextDto;
+  /** Derived by the API from the dates above; never sent back. */
+  status: RentalStatus;
+  daysOverdue: number;
+}
+
+/**
+ * Note the absence of status: the API refuses to take one. A rental becomes
+ * overdue by its return date passing, and stops being overdue by the return
+ * being recorded — there is no field to set either way.
+ */
+export interface SaveRentalRequest {
+  code: string;
+  vendorId: string;
+  equipmentId: string;
+  projectId: string | null;
+  startedOn: string;
+  expectedReturnOn: string;
+  amount: number;
+  notes: LocalizedTextDto | null;
 }

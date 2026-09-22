@@ -9,17 +9,22 @@ import type {
   EquipmentTypeDto,
   LocalizedTextDto,
   ProjectDto,
+  RentalDto,
   RequestDto,
   SaveEquipmentRequest,
   SaveProjectRequest,
+  SaveRentalRequest,
   SaveRequestRequest,
+  SaveVendorRequest,
+  VendorDto,
 } from './api-contracts';
 
 /**
  * The seam between the app and its persistence.
  *
- * Projects and Equipment are served by the real API. Everything else still
- * comes from localStorage, because those endpoints do not exist yet — the
+ * Projects, Equipment, Requests, Costs and Rentals are served by the real API.
+ * Inspections and transport still come from localStorage, because those
+ * endpoints do not exist yet — the
  * backend is being migrated one module at a time, and this class is where the
  * two halves meet. When the remaining endpoints land, the localStorage helpers
  * below go with them.
@@ -138,6 +143,60 @@ export class ErpGateway {
   private transition(id: string, action: string): Promise<RequestDto> {
     return firstValueFrom(
       this.http.post<RequestDto>(`${this.baseUrl}/api/requests/${id}/${action}`, null),
+    );
+  }
+
+  // --- Vendors --------------------------------------------------------------
+
+  getVendors(): Promise<VendorDto[]> {
+    return firstValueFrom(this.http.get<VendorDto[]>(`${this.baseUrl}/api/vendors`));
+  }
+
+  createVendor(request: SaveVendorRequest): Promise<VendorDto> {
+    return firstValueFrom(this.http.post<VendorDto>(`${this.baseUrl}/api/vendors`, request));
+  }
+
+  updateVendor(id: string, request: SaveVendorRequest): Promise<VendorDto> {
+    return firstValueFrom(this.http.put<VendorDto>(`${this.baseUrl}/api/vendors/${id}`, request));
+  }
+
+  deleteVendor(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${this.baseUrl}/api/vendors/${id}`));
+  }
+
+  // --- Rentals --------------------------------------------------------------
+
+  getRentals(): Promise<RentalDto[]> {
+    return firstValueFrom(this.http.get<RentalDto[]>(`${this.baseUrl}/api/rentals`));
+  }
+
+  createRental(request: SaveRentalRequest): Promise<RentalDto> {
+    return firstValueFrom(this.http.post<RentalDto>(`${this.baseUrl}/api/rentals`, request));
+  }
+
+  updateRental(id: string, request: SaveRentalRequest): Promise<RentalDto> {
+    return firstValueFrom(this.http.put<RentalDto>(`${this.baseUrl}/api/rentals/${id}`, request));
+  }
+
+  deleteRental(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${this.baseUrl}/api/rentals/${id}`));
+  }
+
+  /**
+   * Books a collection, and records one actually happening. Two endpoints
+   * rather than a status field, for the same reason the request workflow has
+   * them: each is a distinct event with its own preconditions, and neither can
+   * be faked by writing a status.
+   */
+  bookRentalReturn(id: string, bookedOn: string | null): Promise<RentalDto> {
+    return firstValueFrom(
+      this.http.post<RentalDto>(`${this.baseUrl}/api/rentals/${id}/book-return`, { bookedOn }),
+    );
+  }
+
+  returnRental(id: string, returnedOn: string | null): Promise<RentalDto> {
+    return firstValueFrom(
+      this.http.post<RentalDto>(`${this.baseUrl}/api/rentals/${id}/return`, { returnedOn }),
     );
   }
 

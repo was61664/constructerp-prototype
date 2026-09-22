@@ -34,6 +34,7 @@ export const dataLabels: Record<Language, Record<string, string>> = {
     Scheduled: 'مجدولة',
     'Awaiting Approval': 'بانتظار الموافقة',
     Overdue: 'متأخرة',
+    Returned: 'تم الإرجاع',
     Passed: 'ناجح',
     Attention: 'تحتاج متابعة',
     'Pending Signature': 'بانتظار التوقيع',

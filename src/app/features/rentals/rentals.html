@@ -2,26 +2,31 @@
   <app-page-header
     [eyebrow]="i18n.t('vendorRentals')"
     [title]="i18n.t('activeCommitments')"
-    [subtitle]="i18n.t('externalRentalsNote')"
+    [subtitle]="i18n.t('statusIsDerived')"
   />
 
   <section class="grid grid-thirds" [attr.aria-label]="i18n.t('vendorRentals')">
     <app-kpi-card
-      [label]="i18n.t('externalRentals')"
-      [value]="i18n.formatInteger(store.rentals().length)"
+      [label]="i18n.t('onHire')"
+      [value]="i18n.formatInteger(onHire())"
       [note]="i18n.t('activeCommitments')"
     />
     <app-kpi-card
-      [label]="i18n.t('amount')"
+      [label]="i18n.t('committedValue')"
       [value]="i18n.formatMoney(committed())"
       [note]="i18n.t('rentalReport')"
     />
     <app-kpi-card
-      [label]="i18n.t('attentionQueue')"
+      [label]="i18n.t('overdueRentals')"
       [value]="i18n.formatInteger(overdueCount())"
-      [note]="i18n.t('rentalReport')"
+      [note]="i18n.t('statusIsDerived')"
     />
   </section>
+
+  @if (actionError(); as error) {
+    <!-- The API's own refusal, shown verbatim. -->
+    <p class="action-error" role="alert">{{ error }}</p>
+  }
 
   <app-section-card
     [eyebrow]="i18n.t('vendorRentals')"
@@ -32,7 +37,7 @@
       <app-empty-state [title]="i18n.t('noRecords')" />
     } @else if (layout.isCompact()) {
       <ul class="record-list">
-        @for (rental of store.rentals(); track rental.asset) {
+        @for (rental of store.rentals(); track rental.id) {
           <li>
             <app-record-card
               [title]="i18n.text(rental.vendor)"
@@ -44,6 +49,32 @@
                 [status]="rental.status"
                 [label]="i18n.text(rental.status)"
               />
+              @if (!rental.returnedOn) {
+                <div cardActions class="rental-actions">
+                  @if (!rental.returnBookedOn) {
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="busy.any"
+                      [attr.aria-busy]="busy.is('book:' + rental.id)"
+                      (click)="bookReturn(rental)"
+                    >
+                      <app-busy-icon [busy]="busy.is('book:' + rental.id)" />
+                      <span>{{ i18n.t('bookReturn') }}</span>
+                    </button>
+                  }
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="busy.any"
+                    [attr.aria-busy]="busy.is('return:' + rental.id)"
+                    (click)="recordReturn(rental)"
+                  >
+                    <app-busy-icon [busy]="busy.is('return:' + rental.id)" />
+                    <span>{{ i18n.t('recordReturn') }}</span>
+                  </button>
+                </div>
+              }
             </app-record-card>
           </li>
         }
@@ -55,6 +86,7 @@
             <th mat-header-cell *matHeaderCellDef>{{ i18n.t('vendor') }}</th>
             <td mat-cell *matCellDef="let rental">
               <strong>{{ i18n.text(rental.vendor) }}</strong>
+              <span class="muted code">{{ i18n.code(rental.code) }}</span>
             </td>
           </ng-container>
 
@@ -65,13 +97,19 @@
 
           <ng-container matColumnDef="project">
             <th mat-header-cell *matHeaderCellDef>{{ i18n.t('project') }}</th>
-            <td mat-cell *matCellDef="let rental">{{ i18n.text(rental.project) }}</td>
+            <td mat-cell *matCellDef="let rental">{{ i18n.text(rental.project) || '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="returnDate">
-            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('returnDate') }}</th>
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('dueBack') }}</th>
             <td mat-cell *matCellDef="let rental">
-              {{ i18n.formatDateLabel(rental.returnDate) }}
+              <span>{{ i18n.formatIsoDate(rental.returnDate) }}</span>
+              <!--
+                The date the status is derived FROM, shown beside it. Anyone
+                doubting an "Overdue" chip can check it against this without
+                opening the record.
+              -->
+              <span class="muted" [class.late]="rental.daysOverdue > 0">{{ due(rental) }}</span>
             </td>
           </ng-container>
 
@@ -89,10 +127,74 @@
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let rental">
+              <!--
+                No "mark overdue" here by design. Overdue is not a decision
+                someone makes; it follows from the return date. These two
+                buttons record events, and the API re-derives the status.
+              -->
+              @if (!rental.returnedOn) {
+                <div class="rental-actions">
+                  @if (!rental.returnBookedOn) {
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="busy.any"
+                      [attr.aria-busy]="busy.is('book:' + rental.id)"
+                      (click)="bookReturn(rental)"
+                    >
+                      <app-busy-icon [busy]="busy.is('book:' + rental.id)" />
+                      <span>{{ i18n.t('bookReturn') }}</span>
+                    </button>
+                  }
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="busy.any"
+                    [attr.aria-busy]="busy.is('return:' + rental.id)"
+                    (click)="recordReturn(rental)"
+                  >
+                    <app-busy-icon [busy]="busy.is('return:' + rental.id)" />
+                    <span>{{ i18n.t('recordReturn') }}</span>
+                  </button>
+                </div>
+              }
+            </td>
+          </ng-container>
+
           <tr mat-header-row *matHeaderRowDef="columns"></tr>
           <tr mat-row *matRowDef="let row; columns: columns"></tr>
         </table>
       </div>
+    }
+  </app-section-card>
+
+  <app-section-card [eyebrow]="i18n.t('vendors')" [title]="i18n.t('committedValue')">
+    @if (!store.vendors().length) {
+      <app-empty-state [title]="i18n.t('noRecords')" />
+    } @else {
+      <ul class="vendor-list">
+        @for (vendor of store.vendors(); track vendor.id) {
+          <li class="vendor-row">
+            <div class="vendor-identity">
+              <strong>{{ vendor.name }}</strong>
+              <span class="muted code">{{ i18n.code(vendor.code) }}</span>
+            </div>
+            <div class="vendor-contact">
+              <span>{{ vendor.contactName }}</span>
+              <span class="muted code">{{ i18n.code(vendor.phone) }}</span>
+            </div>
+            <div class="vendor-figures">
+              <span class="muted"
+                >{{ i18n.formatInteger(vendor.openRentalCount) }} {{ i18n.t('onHire') }}</span
+              >
+              <strong class="text-numeric">{{ i18n.formatMoney(vendor.totalSpend) }}</strong>
+            </div>
+          </li>
+        }
+      </ul>
     }
   </app-section-card>
 </div>
