@@ -25,9 +25,10 @@
   inline-size: 100%;
   block-size: 38px;
   padding-inline: 36px 36px;
-  border: $border;
+  border: $border-strong;
   border-radius: $radius;
-  background: $surface-sunken;
+  // Plain surface rather than a grey fill: the border defines the field.
+  background: $surface;
   color: $text-primary;
   font: inherit;
   font-size: 13px;

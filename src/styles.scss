@@ -157,7 +157,7 @@ p {
   }
 
   .mat-mdc-header-row {
-    background: $surface-sunken;
+    background: $surface;
     height: 48px;
   }
 
@@ -167,7 +167,8 @@ p {
     font-weight: 700;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    border-bottom: $border;
+    // A 2px rule does the separating now that the header has no fill.
+    border-bottom: 2px solid var(--border-color-strong);
     white-space: nowrap;
   }
 
@@ -432,6 +433,65 @@ p {
 .mat-mdc-tooltip .mdc-tooltip__surface {
   border-radius: $radius;
   font-size: 12px;
+}
+
+// Thin, brand-coloured scrollbars.
+//
+// The two mechanisms CONFLICT: when the standard `scrollbar-width` /
+// `scrollbar-color` properties are present, Chrome ignores every
+// `::-webkit-scrollbar` rule. Setting both meant the precise pixel width was
+// silently dropped and Chrome's own `thin` (~11px) won, which still read as a
+// bar rather than a line.
+//
+// So the standard properties are applied only where the WebKit pseudo-elements
+// do NOT exist — Firefox — and WebKit/Blink gets the exact size it was asked
+// for.
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: $scrollbar-thumb $scrollbar-track;
+  }
+}
+
+::-webkit-scrollbar {
+  // `width`/`height`, not the logical properties: the scrollbar pseudo-elements
+  // predate logical sizing and do not honour inline-size.
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: $scrollbar-track;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $scrollbar-thumb;
+  border-radius: 999px;
+
+  &:hover {
+    background: $scrollbar-thumb-hover;
+  }
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+// Export actions get their own colour so they read as a distinct kind of
+// action — neither the primary call to action nor a plain secondary button.
+.export-button.mat-mdc-outlined-button {
+  color: $status-success-fg;
+  border-color: $status-success-fg;
+  background: $status-success-bg;
+
+  &:hover:not(:disabled) {
+    border-color: $status-success-fg;
+    filter: brightness(0.97);
+  }
+
+  svg {
+    color: $status-success-fg;
+  }
 }
 
 // Visible keyboard focus everywhere. Material's default focus ring is easy to

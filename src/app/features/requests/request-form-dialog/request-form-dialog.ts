@@ -1,46 +1,42 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
-import {
-  REQUEST_STAGES,
-  type EquipmentRequest,
-  type Ownership,
-  type RequestCheck,
-  type RequestStage,
-  type RequestStatus,
-} from '../../../core/models';
+import type { EquipmentRequest, Ownership } from '../../../core/models';
 import { I18nService } from '../../../core/services/i18n';
+
+export interface RequestOption {
+  id: string;
+  name: string;
+}
 
 export interface RequestFormData {
   mode: 'create' | 'edit';
   request: EquipmentRequest;
-  projectNames: readonly string[];
-  equipmentNames: readonly string[];
+  projects: readonly RequestOption[];
+  equipment: readonly RequestOption[];
 }
 
 const OWNERSHIPS: readonly Ownership[] = ['Owned', 'External Rental'];
 
-const REQUEST_STATUSES: readonly RequestStatus[] = [
-  'Draft',
-  'Submitted',
-  'Approved',
-  'Received',
-  'Inspection Pending',
-  'Ready to Use',
-];
-
+/**
+ * Edits a request's details only.
+ *
+ * There is no status or stage field, deliberately. Status changes exclusively
+ * through the workflow actions on the request card, each of which the server
+ * guards; stage is derived from status. The prototype's version of this form
+ * let the user pick both from dropdowns, which is what made the approval flow
+ * decorative.
+ */
 @Component({
   selector: 'app-request-form-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,
-    MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -59,37 +55,21 @@ export class RequestFormDialog {
   protected readonly data = inject<RequestFormData>(MAT_DIALOG_DATA);
 
   protected readonly ownerships = OWNERSHIPS;
-  protected readonly stages: readonly RequestStage[] = REQUEST_STAGES;
-  protected readonly statuses = REQUEST_STATUSES;
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    id: [this.data.request.id, Validators.required],
-    equipment: [this.data.request.equipment, Validators.required],
-    project: [this.data.request.project],
+    code: [this.data.request.code, Validators.required],
+    equipmentId: [this.data.request.equipmentId, Validators.required],
+    projectId: [this.data.request.projectId],
     ownership: [this.data.request.ownership],
     requestedBy: [this.data.request.requestedBy],
+    // Real date inputs, because these are real dates now. The prototype used
+    // free text ("Jul 20"), which could not be compared or validated.
     requiredDate: [this.data.request.requiredDate],
     returnDate: [this.data.request.returnDate],
     location: [this.data.request.location],
     purpose: [this.data.request.purpose],
     estimatedCost: [this.data.request.estimatedCost, Validators.min(0)],
-    stage: [this.data.request.stage],
-    status: [this.data.request.status],
   });
-
-  /**
-   * Checklists are edited outside the FormGroup as plain controls, one per
-   * check, because the label set is data rather than a fixed schema.
-   */
-  protected readonly checkControls = this.data.request.checks.map((check) => ({
-    label: check.label,
-    control: new FormControl(check.passed, { nonNullable: true }),
-  }));
-
-  protected readonly receivingCheckControls = this.data.request.receivingChecks.map((check) => ({
-    label: check.label,
-    control: new FormControl(check.passed, { nonNullable: true }),
-  }));
 
   protected submit(): void {
     if (this.form.invalid) {
@@ -99,17 +79,30 @@ export class RequestFormDialog {
 
     const value = this.form.getRawValue();
 
-    this.dialogRef.close({
-      ...value,
-      estimatedCost: Math.max(0, value.estimatedCost),
-      checks: this.readChecks(this.checkControls),
-      receivingChecks: this.readChecks(this.receivingCheckControls),
-    });
-  }
+    // Caught here as well as server-side, so the user sees it on the field
+    // rather than after a round trip.
+    if (value.requiredDate && value.returnDate && value.returnDate < value.requiredDate) {
+      this.form.controls.returnDate.setErrors({ beforeRequired: true });
+      return;
+    }
 
-  private readChecks(
-    controls: readonly { label: string; control: FormControl<boolean> }[],
-  ): RequestCheck[] {
-    return controls.map(({ label, control }) => ({ label, passed: control.value }));
+    const equipment = this.data.equipment.find((option) => option.id === value.equipmentId);
+    const project = this.data.projects.find((option) => option.id === value.projectId);
+
+    this.dialogRef.close({
+      ...this.data.request,
+      code: value.code,
+      equipmentId: value.equipmentId,
+      equipment: equipment?.name ?? '',
+      projectId: value.projectId,
+      project: project?.name ?? '',
+      ownership: value.ownership,
+      requestedBy: value.requestedBy,
+      requiredDate: value.requiredDate,
+      returnDate: value.returnDate,
+      location: value.location,
+      purpose: value.purpose,
+      estimatedCost: Math.max(0, value.estimatedCost),
+    });
   }
 }

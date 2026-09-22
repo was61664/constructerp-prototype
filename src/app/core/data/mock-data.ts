@@ -1,29 +1,5 @@
-import type { EquipmentRequest, Inspection, RequestCheck, Rental, TransportMove } from '../models';
+import type { Inspection, Rental, TransportMove } from '../models';
 import type { EquipmentDto, ProjectDto } from './api-contracts';
-
-/** Gate that must pass before a request may be submitted. */
-export function defaultRequestChecks(): RequestCheck[] {
-  return [
-    { label: 'Equipment available', passed: true },
-    { label: 'Project is active', passed: true },
-    { label: 'No idle similar equipment', passed: true },
-    { label: 'Rental period is valid', passed: true },
-    { label: 'Cost within budget', passed: true },
-    { label: 'Delivery cost entered', passed: true },
-  ];
-}
-
-/** Gate that must pass before delivery may be accepted on site. */
-export function defaultReceivingChecks(): RequestCheck[] {
-  return [
-    { label: 'Approved request exists', passed: false },
-    { label: 'Correct equipment and project', passed: false },
-    { label: 'Transport details entered', passed: false },
-    { label: 'Arrival condition documented', passed: false },
-    { label: 'Photos/videos attached', passed: false },
-    { label: 'Receiver signature captured', passed: false },
-  ];
-}
 
 /**
  * Fallback data used when no API is configured (the GitHub Pages build).
@@ -162,62 +138,6 @@ export const SEED_EQUIPMENT: readonly EquipmentDto[] = [
     utilization: 57,
     dailyCost: 690,
     nextAction: { en: 'Operator checklist missing', ar: 'قائمة فحص المشغل غير مكتملة' },
-  },
-];
-
-export const SEED_REQUESTS: readonly EquipmentRequest[] = [
-  {
-    id: 'REQ-2407',
-    equipment: 'Excavator 36T',
-    project: 'Harbor Yard',
-    ownership: 'Owned',
-    requestedBy: 'K. Mansour',
-    requiredDate: 'Jul 20',
-    returnDate: 'Jul 28',
-    location: 'East Gate, Zone 4',
-    purpose: 'Foundation excavation support',
-    estimatedCost: 5520,
-    stage: 'Receiving',
-    status: 'Approved',
-    checks: defaultRequestChecks(),
-    receivingChecks: [
-      { label: 'Approved request exists', passed: true },
-      { label: 'Correct equipment and project', passed: true },
-      { label: 'Transport details entered', passed: true },
-      { label: 'Arrival condition documented', passed: false },
-      { label: 'Photos/videos attached', passed: false },
-      { label: 'Receiver signature captured', passed: false },
-    ],
-  },
-  {
-    id: 'REQ-2411',
-    equipment: 'Tower Light Set',
-    project: 'Metro Station Works',
-    ownership: 'External Rental',
-    requestedBy: 'L. Ibrahim',
-    requiredDate: 'Jul 18',
-    returnDate: 'Jul 22',
-    location: 'East Gate, Zone 4',
-    purpose: 'Night shift lighting',
-    estimatedCost: 940,
-    stage: 'Inspection',
-    status: 'Inspection Pending',
-    checks: [
-      { label: 'Equipment available', passed: true },
-      { label: 'Project is active', passed: true },
-      { label: 'No idle similar equipment', passed: false },
-      { label: 'Rental period is valid', passed: true },
-      { label: 'Cost within budget', passed: true },
-      { label: 'Delivery cost entered', passed: true },
-    ],
-    receivingChecks: [
-      { label: 'Approved request exists', passed: true },
-      { label: 'Correct equipment and project', passed: true },
-      { label: 'Transport details entered', passed: true },
-      { label: 'Arrival condition documented', passed: true },
-      { label: 'Photos/videos attached', passed: true },
-      { label: 'Receiver signature captured', passed: true },
-    ],
   },
 ];
 

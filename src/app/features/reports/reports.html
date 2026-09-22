@@ -4,7 +4,7 @@
     [title]="i18n.t('reportPack')"
     [subtitle]="i18n.t('reportNote')"
   >
-    <button mat-stroked-button type="button" (click)="exportAll()">
+    <button mat-stroked-button class="export-button" type="button" (click)="exportAll()">
       <svg lucideDownload size="16" aria-hidden="true"></svg>
       <span>{{ i18n.t('export') }}</span>
     </button>
@@ -18,6 +18,7 @@
           <p class="report-caption">{{ i18n.t(report.captionKey) }}</p>
           <button
             mat-stroked-button
+            class="export-button"
             type="button"
             [attr.aria-label]="i18n.t('export') + ': ' + i18n.t(report.titleKey)"
             (click)="export(report.id)"

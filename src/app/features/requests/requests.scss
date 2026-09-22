@@ -119,3 +119,39 @@
   flex-direction: column;
   gap: $space-lg;
 }
+
+.action-error {
+  padding: $space-md;
+  background: $status-danger-bg;
+  color: $status-danger-fg;
+  border: 1px solid $status-danger-fg;
+  border-radius: $radius;
+  font-size: 13px;
+}
+
+.workflow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.workflow-none {
+  font-size: 13px;
+  color: $text-secondary;
+}
+
+.request-reason {
+  padding: $space-sm;
+  background: $status-danger-bg;
+  color: $status-danger-fg;
+  border-radius: $radius;
+  font-size: 12px;
+}
+
+.request-ready {
+  padding: $space-sm;
+  background: $status-success-bg;
+  color: $status-success-fg;
+  border-radius: $radius;
+  font-size: 12px;
+}
