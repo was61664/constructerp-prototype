@@ -51,3 +51,8 @@
   color: $text-secondary;
   font-variant-numeric: tabular-nums;
 }
+
+// Checkbox rows sit flush with the read-only rows above them.
+.check mat-checkbox {
+  font-size: 13px;
+}

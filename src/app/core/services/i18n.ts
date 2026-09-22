@@ -132,9 +132,37 @@ export class I18nService {
   }
 
   /**
-   * Mock dates are stored as display strings ("Jul 20"), so this parses that
-   * shape rather than a real Date. Replace with Intl.DateTimeFormat once the
-   * API returns real dates — see PROJECT_GUIDE.md §6.4.
+   * Formats an ISO date (YYYY-MM-DD) from the API.
+   *
+   * Replaces the prototype's formatDateLabel, which parsed display strings
+   * with a hard-coded "Jul" regex because the data had no real dates. These
+   * are real dates now, so Intl does the work and every month and calendar
+   * comes free.
+   */
+  formatIsoDate(value: string | null | undefined): string {
+    if (!value) {
+      return '—';
+    }
+
+    const parsed = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return this.localizeDigits(value);
+    }
+
+    return new Intl.DateTimeFormat(this.numberLocale(), {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(parsed);
+  }
+
+  /**
+   * Legacy formatter for the modules still on mock data.
+   *
+   * Rentals, transport and inspections store display strings ("Jul 24"), so
+   * this parses that shape. Delete it when those modules move to the API and
+   * gain real dates — formatIsoDate is the replacement.
    */
   formatDateLabel(value: string): string {
     if (!this.isArabic()) {

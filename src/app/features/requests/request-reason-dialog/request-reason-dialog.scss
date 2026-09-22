@@ -1,0 +1,21 @@
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.hint {
+  margin-block-end: $space-md;
+  color: $text-secondary;
+  font-size: 13px;
+}
+
+mat-form-field {
+  inline-size: 100%;
+}
+
+mat-dialog-actions {
+  gap: $space-sm;
+  padding: $space-md $space-lg $space-lg;
+  border-top: $border;
+}

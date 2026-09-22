@@ -19,9 +19,19 @@
     </button>
   </app-page-header>
 
+  @if (actionError(); as error) {
+    <!--
+      A refused transition is information, not a crash: the server explains
+      why the action is not allowed yet, so show that verbatim.
+    -->
+    <p class="action-error" role="alert">{{ error }}</p>
+  }
+
   <div class="requests-layout">
     <app-section-card [eyebrow]="i18n.t('activeRequests')" [title]="i18n.t('processSteps')">
-      @if (store.requests().length) {
+      @if (!store.requests().length) {
+        <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
+      } @else {
         <ul class="request-list">
           @for (request of store.requests(); track request.id) {
             <li>
@@ -33,7 +43,7 @@
                   <header class="request-head">
                     <div class="request-title">
                       <strong>{{ i18n.text(request.equipment) }}</strong>
-                      <span class="muted code">{{ i18n.code(request.id) }}</span>
+                      <span class="muted code">{{ i18n.code(request.code) }}</span>
                     </div>
                     <app-status-chip
                       [status]="request.status"
@@ -46,7 +56,7 @@
                   <dl class="request-facts">
                     <div>
                       <dt>{{ i18n.t('project') }}</dt>
-                      <dd>{{ i18n.text(request.project) }}</dd>
+                      <dd>{{ request.project || '—' }}</dd>
                     </div>
                     <div>
                       <dt>{{ i18n.t('requestedBy') }}</dt>
@@ -54,11 +64,11 @@
                     </div>
                     <div>
                       <dt>{{ i18n.t('requiredDate') }}</dt>
-                      <dd>{{ i18n.formatDateLabel(request.requiredDate) }}</dd>
+                      <dd>{{ i18n.formatIsoDate(request.requiredDate) }}</dd>
                     </div>
                     <div>
                       <dt>{{ i18n.t('returnDate') }}</dt>
-                      <dd>{{ i18n.formatDateLabel(request.returnDate) }}</dd>
+                      <dd>{{ i18n.formatIsoDate(request.returnDate) }}</dd>
                     </div>
                     <div>
                       <dt>{{ i18n.t('location') }}</dt>
@@ -70,16 +80,29 @@
                     </div>
                   </dl>
 
-                  <p class="request-purpose">{{ i18n.text(request.purpose) }}</p>
+                  @if (request.purpose) {
+                    <p class="request-purpose">{{ i18n.text(request.purpose) }}</p>
+                  }
+
+                  @if (request.rejectionReason) {
+                    <p class="request-reason">
+                      <strong>{{ i18n.t('rejectedReason') }}:</strong>
+                      {{ request.rejectionReason }}
+                    </p>
+                  }
+
+                  @if (request.status === 'Ready to Use') {
+                    <p class="request-ready">{{ i18n.t('readyToUseNote') }}</p>
+                  }
                 </button>
 
                 <footer class="request-actions">
                   <button
                     mat-icon-button
                     type="button"
-                    [disabled]="busy.any"
+                    [disabled]="busy.any || !canEdit(request)"
                     [attr.aria-busy]="busy.is(request.id)"
-                    [attr.aria-label]="i18n.t('edit') + ' ' + request.id"
+                    [attr.aria-label]="i18n.t('edit') + ' ' + request.code"
                     [matTooltip]="i18n.t('edit')"
                     (click)="openEdit(request)"
                   >
@@ -92,7 +115,7 @@
                     type="button"
                     [disabled]="busy.any"
                     [attr.aria-busy]="busy.is('delete:' + request.id)"
-                    [attr.aria-label]="i18n.t('delete') + ' ' + request.id"
+                    [attr.aria-label]="i18n.t('delete') + ' ' + request.code"
                     [matTooltip]="i18n.t('delete')"
                     (click)="remove(request)"
                   >
@@ -105,22 +128,115 @@
             </li>
           }
         </ul>
-      } @else {
-        <app-empty-state [title]="i18n.t('noRecords')" [hint]="i18n.t('noRecordsHint')" />
       }
     </app-section-card>
 
     @if (selectedRequest(); as request) {
       <div class="checks-column">
-        <app-section-card [eyebrow]="i18n.code(request.id)" [title]="i18n.t('beforeRequestChecks')">
-          <app-request-checklist [checks]="request.checks" />
+        <!--
+          Buttons come from the server's availableActions, so the UI never
+          re-implements the rules — it asks what is currently permitted.
+        -->
+        <app-section-card [eyebrow]="i18n.code(request.code)" [title]="i18n.t('workflowActions')">
+          <div class="workflow">
+            @if (can(request, 'submit')) {
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                [disabled]="busy.any"
+                (click)="submit(request)"
+              >
+                {{ i18n.t('submitRequest') }}
+              </button>
+            }
+            @if (can(request, 'approve')) {
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                [disabled]="busy.any"
+                (click)="approve(request)"
+              >
+                {{ i18n.t('approveRequest') }}
+              </button>
+            }
+            @if (can(request, 'reject')) {
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="busy.any"
+                (click)="reject(request)"
+              >
+                {{ i18n.t('rejectRequest') }}
+              </button>
+            }
+            @if (can(request, 'receive')) {
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                [disabled]="busy.any"
+                (click)="receive(request)"
+              >
+                {{ i18n.t('receiveRequest') }}
+              </button>
+            }
+            @if (can(request, 'inspect')) {
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                [disabled]="busy.any"
+                (click)="inspect(request, true)"
+              >
+                {{ i18n.t('inspectPass') }}
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="busy.any"
+                (click)="inspect(request, false)"
+              >
+                {{ i18n.t('inspectFail') }}
+              </button>
+            }
+            @if (!request.availableActions.length) {
+              <p class="workflow-none">{{ i18n.t('readyToUseNote') }}</p>
+            }
+          </div>
         </app-section-card>
 
         <app-section-card
-          [eyebrow]="i18n.code(request.id)"
+          [eyebrow]="i18n.code(request.code)"
+          [title]="i18n.t('beforeRequestChecks')"
+        >
+          <app-request-checklist
+            [checks]="request.checks"
+            [editable]="canEdit(request)"
+            [busy]="busy.any"
+            (toggled)="toggleCheck(request, $event.id, $event.passed)"
+          />
+        </app-section-card>
+
+        <app-section-card
+          [eyebrow]="i18n.code(request.code)"
           [title]="i18n.t('beforeReceivingChecks')"
         >
-          <app-request-checklist [checks]="request.receivingChecks" />
+          <!--
+            Receiving checks stay open until delivery is accepted; the server
+            locks them at the same point.
+          -->
+          <app-request-checklist
+            [checks]="request.receivingChecks"
+            [editable]="
+              request.status !== 'Received' &&
+              request.status !== 'Inspection Pending' &&
+              request.status !== 'Ready to Use'
+            "
+            [busy]="busy.any"
+            (toggled)="toggleCheck(request, $event.id, $event.passed)"
+          />
         </app-section-card>
       </div>
     }

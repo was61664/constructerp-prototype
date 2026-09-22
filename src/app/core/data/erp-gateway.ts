@@ -7,9 +7,12 @@ import { environment } from '../../../environments/environment';
 import type {
   EquipmentDto,
   EquipmentTypeDto,
+  LocalizedTextDto,
   ProjectDto,
+  RequestDto,
   SaveEquipmentRequest,
   SaveProjectRequest,
+  SaveRequestRequest,
 } from './api-contracts';
 
 /**
@@ -74,6 +77,68 @@ export class ErpGateway {
 
   deleteEquipment(id: string): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${this.baseUrl}/api/equipment/${id}`));
+  }
+
+  // --- Requests -------------------------------------------------------------
+
+  getRequests(): Promise<RequestDto[]> {
+    return firstValueFrom(this.http.get<RequestDto[]>(`${this.baseUrl}/api/requests`));
+  }
+
+  createRequest(request: SaveRequestRequest): Promise<RequestDto> {
+    return firstValueFrom(this.http.post<RequestDto>(`${this.baseUrl}/api/requests`, request));
+  }
+
+  updateRequest(id: string, request: SaveRequestRequest): Promise<RequestDto> {
+    return firstValueFrom(this.http.put<RequestDto>(`${this.baseUrl}/api/requests/${id}`, request));
+  }
+
+  deleteRequest(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${this.baseUrl}/api/requests/${id}`));
+  }
+
+  setRequestCheck(id: string, checkId: string, passed: boolean): Promise<RequestDto> {
+    return firstValueFrom(
+      this.http.put<RequestDto>(`${this.baseUrl}/api/requests/${id}/checks/${checkId}`, { passed }),
+    );
+  }
+
+  /**
+   * Workflow transitions. Each is a separate endpoint because each enforces its
+   * own precondition server-side; there is no "set status" call to make.
+   */
+  submitRequest(id: string): Promise<RequestDto> {
+    return this.transition(id, 'submit');
+  }
+
+  approveRequest(id: string): Promise<RequestDto> {
+    return this.transition(id, 'approve');
+  }
+
+  receiveRequest(id: string): Promise<RequestDto> {
+    return this.transition(id, 'receive');
+  }
+
+  rejectRequest(id: string, reason: LocalizedTextDto): Promise<RequestDto> {
+    return firstValueFrom(
+      this.http.post<RequestDto>(`${this.baseUrl}/api/requests/${id}/reject`, { reason }),
+    );
+  }
+
+  inspectRequest(
+    id: string,
+    passed: boolean,
+    reason: LocalizedTextDto | null,
+  ): Promise<RequestDto> {
+    return firstValueFrom(
+      this.http.post<RequestDto>(`${this.baseUrl}/api/requests/${id}/inspect`, { passed, reason }),
+    );
+  }
+
+  private transition(id: string, action: string): Promise<RequestDto> {
+    return firstValueFrom(
+      this.http.post<RequestDto>(`${this.baseUrl}/api/requests/${id}/${action}`, null),
+    );
   }
 
   // --- Local persistence (entities with no API yet) -------------------------

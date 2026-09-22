@@ -1,5 +1,6 @@
 import type { EquipmentStatus, Ownership } from '../models/equipment';
 import type { ProjectStatus } from '../models/project';
+import type { RequestStage, RequestStatus } from '../models/equipment-request';
 
 /**
  * The wire format served by ConstructErp.Api.
@@ -79,4 +80,63 @@ export interface EquipmentTypeDto {
   id: string;
   code: string;
   name: LocalizedTextDto;
+}
+
+// --- Requests ---------------------------------------------------------------
+
+export type RequestCheckKind = 'PreRequest' | 'PreReceiving';
+
+export interface RequestCheckDto {
+  id: string;
+  kind: RequestCheckKind;
+  /** Stable key (RECEIVER_SIGNED). Survives relabelling. */
+  code: string;
+  label: LocalizedTextDto;
+  passed: boolean;
+  sequence: number;
+}
+
+export interface RequestDto {
+  id: string;
+  code: string;
+  equipmentId: string;
+  equipmentCode: string;
+  equipmentName: LocalizedTextDto;
+  projectId: string | null;
+  projectCode: string | null;
+  projectName: LocalizedTextDto | null;
+  ownership: Ownership;
+  requestedBy: string;
+  requiredDate: string | null;
+  returnDate: string | null;
+  location: LocalizedTextDto;
+  purpose: LocalizedTextDto;
+  estimatedCost: number;
+  status: RequestStatus;
+  /** Derived by the API from status; never sent back. */
+  stage: RequestStage;
+  rejectionReason: LocalizedTextDto | null;
+  checks: RequestCheckDto[];
+  /** What the workflow will currently permit. Drives which buttons show. */
+  availableActions: RequestAction[];
+}
+
+export type RequestAction = 'submit' | 'approve' | 'reject' | 'receive' | 'inspect';
+
+/**
+ * Note the absence of status and stage: the API refuses to take them. Status
+ * changes only through the transition endpoints, each of which enforces its
+ * own precondition.
+ */
+export interface SaveRequestRequest {
+  code: string;
+  equipmentId: string;
+  projectId: string | null;
+  ownership: Ownership;
+  requestedBy: string;
+  requiredDate: string | null;
+  returnDate: string | null;
+  location: LocalizedTextDto;
+  purpose: LocalizedTextDto;
+  estimatedCost: number;
 }

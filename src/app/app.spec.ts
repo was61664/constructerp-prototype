@@ -5,7 +5,12 @@ import { provideRouter } from '@angular/router';
 
 import { App } from './app';
 import { routes } from './app.routes';
-import type { EquipmentDto, ProjectDto, SaveEquipmentRequest } from './core/data/api-contracts';
+import type {
+  EquipmentDto,
+  ProjectDto,
+  RequestDto,
+  SaveEquipmentRequest,
+} from './core/data/api-contracts';
 import { ErpGateway } from './core/data/erp-gateway';
 import { ErpStore } from './core/services/erp-store';
 import { I18nService } from './core/services/i18n';
@@ -99,6 +104,10 @@ class FakeGateway {
 
   readLocal = <T>(_key: string, fallback: readonly T[]) => [...fallback];
   commitLocal = () => Promise.resolve();
+
+  requests: RequestDto[] = [];
+
+  getRequests = () => Promise.resolve(this.requests);
 
   private merge(request: SaveEquipmentRequest): Partial<EquipmentDto> {
     return {
@@ -616,6 +625,6 @@ describe('ErpStore', () => {
 
     expect(store.nextProjectCode()).toMatch(/^PRJ-\d{4}$/);
     expect(store.nextEquipmentCode()).toMatch(/^EQ-\d{4}$/);
-    expect(store.nextRequestId()).toMatch(/^REQ-\d{4}$/);
+    expect(store.nextRequestCode()).toMatch(/^REQ-\d{4}$/);
   });
 });
