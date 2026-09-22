@@ -48,8 +48,8 @@
   // Depth, where it is needed, comes from the sunken tones below.
   --app-background: #ffffff;
   --surface: #ffffff; // cards, toolbar, sidebar
-  --surface-sunken: #f6f7f8; // table headers, inset panels — recedes
-  --surface-hover: #f1f3f5; // row hover — one step darker than sunken
+  --surface-sunken: #ffffff; // table headers, inset panels — flat, border-led
+  --surface-hover: #f4f6f8; // row hover
   --surface-selected: #eaf2fd; // selected row (brand tint)
 
   // Borders — carrying the structural work, so slightly stronger than a
@@ -86,6 +86,11 @@
   --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-overlay: 0 4px 16px rgba(0, 0, 0, 0.14);
   --scrim: rgba(0, 0, 0, 0.32);
+
+  // Scrollbars: thin, brand-coloured, visible on either ground.
+  --scrollbar-thumb: #1976d2;
+  --scrollbar-thumb-hover: #125aa6;
+  --scrollbar-track: transparent;
 }
 
 // -----------------------------------------------------------------------------
@@ -112,7 +117,7 @@
   // makes hover feel like "raised" rather than "dented".
   --app-background: #000000;
   --surface: #0c0c0e;
-  --surface-sunken: #141418; // table headers, inset panels
+  --surface-sunken: #0c0c0e; // table headers, inset panels — flat, border-led
   --surface-hover: #1c1c21; // row hover — lighter than the surface
   --surface-selected: #112a44; // selected row (brand tint)
 
@@ -149,6 +154,10 @@
   --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.6);
   --shadow-overlay: 0 4px 18px rgba(0, 0, 0, 0.8);
   --scrim: rgba(0, 0, 0, 0.7);
+
+  --scrollbar-thumb: #5aa3f0;
+  --scrollbar-thumb-hover: #8fc4f7;
+  --scrollbar-track: transparent;
 }
 
 // -----------------------------------------------------------------------------
@@ -190,6 +199,9 @@ $status-neutral-fg: var(--status-neutral-fg);
 $shadow-raised: var(--shadow-raised);
 $shadow-overlay: var(--shadow-overlay);
 $scrim: var(--scrim);
+$scrollbar-thumb: var(--scrollbar-thumb);
+$scrollbar-thumb-hover: var(--scrollbar-thumb-hover);
+$scrollbar-track: var(--scrollbar-track);
 
 // Non-colour tokens: identical in both themes, so plain SCSS.
 

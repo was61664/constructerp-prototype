@@ -10,10 +10,15 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: $space-sm;
+  gap: $space-md;
   padding: 0 $space-lg;
-  block-size: $toolbar-height;
+  // Taller than the toolbar so the larger mark has room to breathe.
+  block-size: 72px;
   border-bottom: $border;
+  flex-shrink: 0;
+}
+
+.brand img {
   flex-shrink: 0;
 }
 

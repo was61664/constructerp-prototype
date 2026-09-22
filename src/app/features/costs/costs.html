@@ -23,17 +23,24 @@
     />
   </section>
 
-  <app-section-card [eyebrow]="i18n.t('projectCosts')" [title]="i18n.t('costTitle')">
-    @if (store.projectCosts().length) {
-      <ul class="cost-list">
-        @for (line of store.projectCosts(); track line.project) {
-          <li class="cost-row">
-            <header class="cost-head">
-              <strong>{{ i18n.text(line.project) }}</strong>
-              <span class="cost-total text-numeric">
-                {{ i18n.formatMoney(lineTotal(line.equipment, line.transport, line.extras)) }}
-              </span>
-            </header>
+  @if (!store.projectCosts().length) {
+    <app-section-card [eyebrow]="i18n.t('projectCosts')" [title]="i18n.t('costTitle')">
+      <app-empty-state [title]="i18n.t('noRecords')" />
+    </app-section-card>
+  } @else {
+    <!-- One card per project, rather than every project stacked in a single
+         card: each is a separate record and reads as one. -->
+    <div class="grid cost-grid">
+      @for (line of store.projectCosts(); track line.project) {
+        <app-section-card [eyebrow]="i18n.t('projectCosts')" [title]="i18n.text(line.project)">
+          <div class="cost-body">
+            <p class="cost-total text-numeric">
+              {{ i18n.formatMoney(lineTotal(line.equipment, line.transport, line.extras)) }}
+            </p>
+
+            @if (!lineTotal(line.equipment, line.transport, line.extras)) {
+              <p class="cost-empty">{{ i18n.t('noCostEntries') }}</p>
+            }
 
             <div class="cost-bars">
               <app-meter-bar
@@ -64,11 +71,9 @@
               [valueLabel]="i18n.formatPercent(line.progress)"
               [dangerAbove]="90"
             />
-          </li>
-        }
-      </ul>
-    } @else {
-      <app-empty-state [title]="i18n.t('noRecords')" />
-    }
-  </app-section-card>
+          </div>
+        </app-section-card>
+      }
+    </div>
+  }
 </div>
