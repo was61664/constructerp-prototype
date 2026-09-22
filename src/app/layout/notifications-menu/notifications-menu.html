@@ -4,23 +4,42 @@
   class="bell"
   [matMenuTriggerFor]="menu"
   [matTooltip]="i18n.t('notifications')"
-  [attr.aria-label]="i18n.t('notifications') + ': ' + i18n.formatInteger(notifications.count())"
+  [attr.aria-label]="
+    i18n.t('notifications') +
+    ': ' +
+    i18n.format('notificationsUnread', { count: i18n.formatInteger(notifications.unreadCount()) })
+  "
 >
   <svg lucideBell size="20" aria-hidden="true"></svg>
 
-  @if (notifications.count()) {
-    <!-- aria-hidden: the count is already in the button's own label. -->
-    <span class="badge" aria-hidden="true">{{ i18n.formatInteger(notifications.count()) }}</span>
+  <!--
+    The badge counts UNREAD, not open issues. Counting open issues here made
+    clicking an entry look broken: the user acted and the number did not move.
+    aria-hidden because the count is already in the button's own label.
+  -->
+  @if (notifications.hasUnread()) {
+    <span class="badge" aria-hidden="true">{{
+      i18n.formatInteger(notifications.unreadCount())
+    }}</span>
   }
 </button>
 
 <mat-menu #menu="matMenu" class="notifications-panel">
-  <div class="menu-heading" role="presentation">{{ i18n.t('notifications') }}</div>
+  <div class="menu-heading notifications-heading" role="presentation">
+    <span>{{ i18n.t('notifications') }}</span>
+    @if (notifications.hasUnread()) {
+      <button type="button" class="mark-all" (click)="markAllRead($event)">
+        {{ i18n.t('notificationsMarkAllRead') }}
+      </button>
+    } @else if (notifications.count()) {
+      <span class="all-read">{{ i18n.t('notificationsAllRead') }}</span>
+    }
+  </div>
 
   @if (notifications.count()) {
     @for (item of notifications.notifications(); track item.key) {
       <button mat-menu-item type="button" (click)="open(item)">
-        <span class="item">
+        <span class="item" [class.item-read]="item.read">
           <span class="dot" [class]="'tone-' + item.tone" aria-hidden="true"></span>
           <span class="item-text">
             <span class="item-title">{{ item.title }}</span>

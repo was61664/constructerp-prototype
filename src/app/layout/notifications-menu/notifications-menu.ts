@@ -24,10 +24,18 @@ export class NotificationsMenu {
   protected readonly notifications = inject(NotificationsService);
 
   protected open(notification: AppNotification): void {
+    this.notifications.markRead(notification.key);
+
     if (notification.selectEquipmentId) {
       this.store.selectEquipment(notification.selectEquipmentId);
     }
 
     void this.router.navigateByUrl(notification.route);
+  }
+
+  /** Stops the click bubbling to the menu, which would close it. */
+  protected markAllRead(event: Event): void {
+    event.stopPropagation();
+    this.notifications.markAllRead();
   }
 }

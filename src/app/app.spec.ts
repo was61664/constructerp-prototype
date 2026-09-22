@@ -269,6 +269,50 @@ describe('NotificationsService', () => {
     expect(entries.length).toBe(overdue);
   });
 
+  it('should drop the unread count when an entry is opened', () => {
+    const notifications = TestBed.inject(NotificationsService);
+    const before = notifications.unreadCount();
+    const first = notifications.notifications()[0];
+
+    expect(before).toBeGreaterThan(0);
+
+    notifications.markRead(first.key);
+
+    // The badge must move when the user acts. `count` deliberately does NOT:
+    // the issue is still open until the underlying record is fixed.
+    expect(notifications.unreadCount()).toBe(before - 1);
+    expect(notifications.count()).toBe(before);
+    expect(notifications.notifications()[0].read).toBeTrue();
+  });
+
+  it('should clear the badge when everything is marked read', () => {
+    const notifications = TestBed.inject(NotificationsService);
+    notifications.markAllRead();
+
+    expect(notifications.unreadCount()).toBe(0);
+    expect(notifications.hasUnread()).toBeFalse();
+    expect(notifications.count()).toBeGreaterThan(0);
+  });
+
+  it('should treat a recurring issue as unread again', async () => {
+    const notifications = TestBed.inject(NotificationsService);
+    const store = TestBed.inject(ErpStore);
+    const idle = store.equipment().find((item) => item.status === 'Idle');
+
+    notifications.markAllRead();
+    expect(notifications.hasUnread()).toBeFalse();
+
+    // Resolve it, then let it recur: the read flag must not persist across the
+    // gap, or a genuinely new occurrence would arrive silently pre-read.
+    await store.updateEquipment(idle!.id, { ...idle!, status: 'Working' });
+    notifications.markAllRead();
+    await store.updateEquipment(idle!.id, { ...idle!, status: 'Idle' });
+
+    expect(
+      notifications.notifications().some((n) => n.key === `asset:${idle!.id}` && !n.read),
+    ).toBeTrue();
+  });
+
   it('should disappear when the underlying record is fixed', async () => {
     const notifications = TestBed.inject(NotificationsService);
     const store = TestBed.inject(ErpStore);
