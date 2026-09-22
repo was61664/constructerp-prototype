@@ -1,0 +1,53 @@
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  font-size: 13px;
+  color: $text-primary;
+}
+
+.check-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: $radius-sm;
+  background: $status-success-bg;
+  color: $status-success-fg;
+  flex-shrink: 0;
+}
+
+.check-failed {
+  color: $text-secondary;
+
+  .check-icon {
+    background: $status-danger-bg;
+    color: $status-danger-fg;
+  }
+}
+
+.check-summary {
+  margin-block-start: $space-md;
+  padding-block-start: $space-md;
+  border-top: $border;
+  font-size: 12px;
+  font-weight: 700;
+  color: $text-secondary;
+  font-variant-numeric: tabular-nums;
+}

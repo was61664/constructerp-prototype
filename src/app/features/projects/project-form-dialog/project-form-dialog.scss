@@ -1,0 +1,6 @@
+@use 'dialog-form' as *;
+
+:host {
+  display: block;
+  @include dialog-form;
+}

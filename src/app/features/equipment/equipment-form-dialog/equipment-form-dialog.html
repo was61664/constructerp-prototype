@@ -1,0 +1,83 @@
+<h2 mat-dialog-title>
+  {{ data.mode === 'create' ? i18n.t('createEquipment') : i18n.t('editEquipment') }}
+</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content>
+    <p class="hint">{{ i18n.t('crudHint') }}</p>
+
+    <div class="form-grid">
+      <mat-form-field>
+        <mat-label>{{ i18n.t('code') }}</mat-label>
+        <input matInput formControlName="code" required />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('name') }}</mat-label>
+        <input matInput formControlName="name" required />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('type') }}</mat-label>
+        <mat-select formControlName="equipmentTypeId" required>
+          @for (type of data.types; track type.id) {
+            <mat-option [value]="type.id">{{ type.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('ownership') }}</mat-label>
+        <mat-select formControlName="ownership">
+          @for (ownership of ownerships; track ownership) {
+            <mat-option [value]="ownership">{{ i18n.text(ownership) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('project') }}</mat-label>
+        <mat-select formControlName="projectId">
+          <!-- Unassigned is a real state, not a missing value. -->
+          <mat-option [value]="null">{{ i18n.t('noRecords') }}</mat-option>
+          @for (project of data.projects; track project.id) {
+            <mat-option [value]="project.id">{{ project.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('status') }}</mat-label>
+        <mat-select formControlName="status">
+          @for (status of statuses; track status) {
+            <mat-option [value]="status">{{ i18n.text(status) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('utilization') }}</mat-label>
+        <input matInput type="number" min="0" max="100" formControlName="utilization" />
+        <span matTextSuffix>%</span>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ i18n.t('dailyCost') }}</mat-label>
+        <input matInput type="number" min="0" formControlName="dailyCost" />
+        <span matTextSuffix>KWD</span>
+      </mat-form-field>
+
+      <mat-form-field class="span-2">
+        <mat-label>{{ i18n.t('nextAction') }}</mat-label>
+        <input matInput formControlName="nextAction" />
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="dialogRef.close()">
+      {{ i18n.t('cancel') }}
+    </button>
+    <button mat-raised-button color="primary" type="submit">{{ i18n.t('save') }}</button>
+  </mat-dialog-actions>
+</form>

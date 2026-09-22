@@ -1,0 +1,42 @@
+@use 'tokens' as *;
+
+:host {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-lg;
+  flex-wrap: wrap;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $brand-primary;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+}
+
+.subtitle {
+  color: $text-secondary;
+  max-width: 68ch;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  flex-shrink: 0;
+}

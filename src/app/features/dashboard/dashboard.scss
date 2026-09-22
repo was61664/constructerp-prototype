@@ -1,0 +1,74 @@
+@use 'tokens' as *;
+
+.dashboard-grid {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+// The utilization card carries more rows, so it takes two columns once the
+// grid is wide enough to have two.
+.span-wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 1100px) {
+  .span-wide {
+    grid-column: span 1;
+  }
+}
+
+.meter-list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.action-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-row {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+  padding: $space-md 0;
+  background: none;
+  border: 0;
+  border-bottom: $border;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: color $transition-fast;
+
+  &:hover strong {
+    color: $brand-primary;
+  }
+}
+
+.action-list li:last-child .action-row {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: $text-primary;
+  }
+
+  span {
+    font-size: 12px;
+    color: $text-secondary;
+  }
+}

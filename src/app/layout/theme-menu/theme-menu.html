@@ -1,0 +1,57 @@
+<button
+  mat-icon-button
+  type="button"
+  [matMenuTriggerFor]="menu"
+  [attr.aria-label]="i18n.t('themeMenu')"
+  [matTooltip]="i18n.t('themeMenu')"
+>
+  <!-- Trigger shows the resolved theme: what the user is actually looking at. -->
+  @if (theme.isDark()) {
+    <svg lucideMoon size="20" aria-hidden="true"></svg>
+  } @else {
+    <svg lucideSun size="20" aria-hidden="true"></svg>
+  }
+</button>
+
+<mat-menu #menu="matMenu" class="theme-menu-panel">
+  <div class="menu-heading" role="presentation">{{ i18n.t('theme') }}</div>
+
+  @for (preference of preferences; track preference) {
+    <button
+      mat-menu-item
+      type="button"
+      role="menuitemradio"
+      [attr.aria-checked]="theme.preference() === preference"
+      (click)="theme.select(preference)"
+    >
+      <span class="item">
+        <span class="item-icon" aria-hidden="true">
+          @switch (preference) {
+            @case ('light') {
+              <svg lucideSun size="17"></svg>
+            }
+            @case ('dark') {
+              <svg lucideMoon size="17"></svg>
+            }
+            @case ('system') {
+              <svg lucideMonitor size="17"></svg>
+            }
+          }
+        </span>
+
+        <span class="item-text">
+          <span class="item-label">{{ label(preference) }}</span>
+          @if (preference === 'system') {
+            <span class="item-note">{{ i18n.t('themeSystemNote') }}</span>
+          }
+        </span>
+
+        <span class="item-check" aria-hidden="true">
+          @if (theme.preference() === preference) {
+            <svg lucideCheck size="16"></svg>
+          }
+        </span>
+      </span>
+    </button>
+  }
+</mat-menu>

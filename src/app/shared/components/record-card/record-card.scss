@@ -1,0 +1,80 @@
+@use 'tokens' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+  padding: $space-md;
+  background: $surface;
+  border: $border;
+  border-radius: $radius;
+}
+
+.record-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-sm;
+}
+
+.record-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 20px;
+    color: $text-primary;
+  }
+}
+
+.record-subtitle {
+  font-size: 12px;
+  color: $text-hint;
+}
+
+.record-fields {
+  margin: 0;
+  display: grid;
+  // Two columns where they fit, one on the narrowest phones. 120px is tuned to
+  // the real inner width of a card at 375px (~274px after page, card and
+  // record padding) so six fields read as three rows, not six.
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
+  gap: $space-sm $space-md;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  dt {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: $text-hint;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+    overflow-wrap: anywhere;
+  }
+}
+
+.record-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-xs;
+
+  // Collapses when nothing is projected, so read-only cards get no dead space.
+  &:empty {
+    display: none;
+  }
+}

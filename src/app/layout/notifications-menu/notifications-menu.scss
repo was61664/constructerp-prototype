@@ -1,0 +1,32 @@
+@use 'tokens' as *;
+
+:host {
+  display: inline-flex;
+}
+
+.bell {
+  position: relative;
+  overflow: visible;
+}
+
+.badge {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-end: 4px;
+  min-inline-size: 17px;
+  block-size: 17px;
+  padding-inline: 4px;
+  border-radius: 9px;
+  background: $status-danger-fg;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  // A ring in the toolbar colour keeps the badge legible where it overlaps
+  // the bell glyph, in either theme.
+  box-shadow: 0 0 0 2px $surface;
+}
+
+// The panel renders in the CDK overlay, outside this component — its styles
+// live in styles.scss under .notifications-panel.

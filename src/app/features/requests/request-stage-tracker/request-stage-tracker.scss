@@ -1,0 +1,74 @@
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm $space-lg;
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  position: relative;
+  color: $text-hint;
+}
+
+// Connector between steps. Uses a logical property so it flips with RTL.
+.stage:not(:last-child)::after {
+  content: '';
+  inline-size: $space-md;
+  block-size: 1px;
+  background: $border-color-strong;
+  margin-inline-start: $space-sm;
+}
+
+.stage-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: $radius;
+  border: $border-strong;
+  background: $surface;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.stage-label {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.stage-done {
+  color: $text-secondary;
+
+  .stage-marker {
+    background: $status-success-bg;
+    border-color: $status-success-bg;
+    color: $status-success-fg;
+  }
+}
+
+.stage-current {
+  color: $brand-primary-dark;
+
+  .stage-marker {
+    background: $brand-primary;
+    border-color: $brand-primary;
+    color: $text-inverse;
+  }
+
+  .stage-label {
+    font-weight: 700;
+  }
+}

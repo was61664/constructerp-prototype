@@ -1,0 +1,36 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="i18n.t('reports')"
+    [title]="i18n.t('reportPack')"
+    [subtitle]="i18n.t('reportNote')"
+  >
+    <button mat-stroked-button type="button" (click)="exportAll()">
+      <svg lucideDownload size="16" aria-hidden="true"></svg>
+      <span>{{ i18n.t('export') }}</span>
+    </button>
+  </app-page-header>
+
+  <div class="grid grid-thirds">
+    @for (report of reports(); track report.id) {
+      <app-section-card [eyebrow]="i18n.t('reports')" [title]="i18n.t(report.titleKey)">
+        <div class="report-body">
+          <p class="report-value text-numeric">{{ report.value }}</p>
+          <p class="report-caption">{{ i18n.t(report.captionKey) }}</p>
+          <button
+            mat-stroked-button
+            type="button"
+            [attr.aria-label]="i18n.t('export') + ': ' + i18n.t(report.titleKey)"
+            (click)="export(report.id)"
+          >
+            <svg lucideDownload size="16" aria-hidden="true"></svg>
+            <span>{{ i18n.t('export') }}</span>
+          </button>
+        </div>
+      </app-section-card>
+    }
+  </div>
+
+  <app-section-card [eyebrow]="i18n.t('prototypeOutput')" [title]="i18n.t('readyReview')">
+    <p class="note">{{ i18n.t('reportNote') }}</p>
+  </app-section-card>
+</div>

@@ -1,0 +1,98 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="i18n.t('vendorRentals')"
+    [title]="i18n.t('activeCommitments')"
+    [subtitle]="i18n.t('externalRentalsNote')"
+  />
+
+  <section class="grid grid-thirds" [attr.aria-label]="i18n.t('vendorRentals')">
+    <app-kpi-card
+      [label]="i18n.t('externalRentals')"
+      [value]="i18n.formatInteger(store.rentals().length)"
+      [note]="i18n.t('activeCommitments')"
+    />
+    <app-kpi-card
+      [label]="i18n.t('amount')"
+      [value]="i18n.formatMoney(committed())"
+      [note]="i18n.t('rentalReport')"
+    />
+    <app-kpi-card
+      [label]="i18n.t('attentionQueue')"
+      [value]="i18n.formatInteger(overdueCount())"
+      [note]="i18n.t('rentalReport')"
+    />
+  </section>
+
+  <app-section-card
+    [eyebrow]="i18n.t('vendorRentals')"
+    [title]="i18n.t('activeCommitments')"
+    [flush]="!layout.isCompact()"
+  >
+    @if (!store.rentals().length) {
+      <app-empty-state [title]="i18n.t('noRecords')" />
+    } @else if (layout.isCompact()) {
+      <ul class="record-list">
+        @for (rental of store.rentals(); track rental.asset) {
+          <li>
+            <app-record-card
+              [title]="i18n.text(rental.vendor)"
+              [subtitle]="i18n.text(rental.asset)"
+              [fields]="fieldsFor(rental)"
+            >
+              <app-status-chip
+                cardStatus
+                [status]="rental.status"
+                [label]="i18n.text(rental.status)"
+              />
+            </app-record-card>
+          </li>
+        }
+      </ul>
+    } @else {
+      <div class="table-scroll">
+        <table mat-table [dataSource]="store.rentals()" class="rentals-table">
+          <ng-container matColumnDef="vendor">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('vendor') }}</th>
+            <td mat-cell *matCellDef="let rental">
+              <strong>{{ i18n.text(rental.vendor) }}</strong>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="asset">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('asset') }}</th>
+            <td mat-cell *matCellDef="let rental">{{ i18n.text(rental.asset) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="project">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('project') }}</th>
+            <td mat-cell *matCellDef="let rental">{{ i18n.text(rental.project) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="returnDate">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('returnDate') }}</th>
+            <td mat-cell *matCellDef="let rental">
+              {{ i18n.formatDateLabel(rental.returnDate) }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="amount">
+            <th mat-header-cell *matHeaderCellDef class="cell-numeric">{{ i18n.t('amount') }}</th>
+            <td mat-cell *matCellDef="let rental" class="cell-numeric">
+              {{ i18n.formatMoney(rental.amount) }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>{{ i18n.t('status') }}</th>
+            <td mat-cell *matCellDef="let rental">
+              <app-status-chip [status]="rental.status" [label]="i18n.text(rental.status)" />
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+    }
+  </app-section-card>
+</div>

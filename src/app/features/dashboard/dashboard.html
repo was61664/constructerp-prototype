@@ -1,0 +1,74 @@
+<div class="page">
+  <app-page-header
+    [eyebrow]="i18n.t('eyebrow')"
+    [title]="i18n.t('heading')"
+    [subtitle]="i18n.t('fleetVisibility')"
+  >
+    <button
+      mat-stroked-button
+      type="button"
+      [matTooltip]="i18n.t('exportUtilization')"
+      (click)="exportUtilization()"
+    >
+      <svg lucideDownload size="16" aria-hidden="true"></svg>
+      <span>{{ i18n.t('export') }}</span>
+    </button>
+  </app-page-header>
+
+  <section class="grid grid-kpi" [attr.aria-label]="i18n.t('fleetVisibility')">
+    <app-kpi-card
+      [label]="i18n.t('totalEquipment')"
+      [value]="i18n.formatInteger(store.totals().total)"
+      [note]="i18n.t('totalEquipmentNote')"
+    />
+    <app-kpi-card
+      [label]="i18n.t('externalRentals')"
+      [value]="i18n.formatInteger(store.totals().rented)"
+      [note]="i18n.t('externalRentalsNote')"
+    />
+    <app-kpi-card
+      [label]="i18n.t('dailySpend')"
+      [value]="i18n.formatMoney(store.totals().dailySpend)"
+      [note]="i18n.t('dailySpendNote')"
+    />
+    <app-kpi-card
+      [label]="i18n.t('avgUtilization')"
+      [value]="i18n.formatPercent(store.totals().avgUtilization)"
+      [note]="i18n.formatInteger(store.totals().idle) + ' ' + i18n.t('idleNeedsReview')"
+    />
+  </section>
+
+  <div class="grid dashboard-grid">
+    <app-section-card
+      [eyebrow]="i18n.t('fleetVisibility')"
+      [title]="i18n.t('utilizationByAsset')"
+      class="span-wide"
+    >
+      <div class="meter-list">
+        @for (item of store.equipment(); track item.id) {
+          <app-meter-bar
+            [label]="i18n.text(item.name)"
+            [value]="item.utilization"
+            [valueLabel]="i18n.formatPercent(item.utilization)"
+          />
+        }
+      </div>
+    </app-section-card>
+
+    <app-section-card [eyebrow]="i18n.t('attentionQueue')" [title]="i18n.t('nextActions')">
+      <ul class="action-list">
+        @for (item of store.equipment().slice(0, 4); track item.id) {
+          <li>
+            <button class="action-row" type="button" (click)="openAsset(item.id)">
+              <span class="action-text">
+                <strong>{{ i18n.text(item.name) }}</strong>
+                <span>{{ i18n.text(item.nextAction) }}</span>
+              </span>
+              <app-status-chip [status]="item.status" [label]="i18n.text(item.status)" />
+            </button>
+          </li>
+        }
+      </ul>
+    </app-section-card>
+  </div>
+</div>

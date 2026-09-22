@@ -1,0 +1,43 @@
+@use 'tokens' as *;
+
+:host {
+  display: inline-flex;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px $space-sm;
+  // 2px, not a pill. Every tone pairs a tinted background with a dark
+  // foreground that clears 4.5:1 against it.
+  border-radius: $radius-sm;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.tone-success {
+  background: $status-success-bg;
+  color: $status-success-fg;
+}
+
+.tone-info {
+  background: $status-info-bg;
+  color: $status-info-fg;
+}
+
+.tone-warn {
+  background: $status-warn-bg;
+  color: $status-warn-fg;
+}
+
+.tone-danger {
+  background: $status-danger-bg;
+  color: $status-danger-fg;
+}
+
+.tone-neutral {
+  background: $status-neutral-bg;
+  color: $status-neutral-fg;
+}

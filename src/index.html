@@ -1,13 +1,49 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>ConstructERP Prototype</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/svg+xml" href="finesco-logo.svg">
-</head>
-<body>
-  <app-root></app-root>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>ConstructERP</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="finesco-logo.svg" />
+
+    <!--
+      Tajawal is loaded once here rather than @import-ed in component styles.
+      A per-component @import blocks that component's stylesheet on a network
+      request and duplicates the download. Weights: 400 body, 500 medium,
+      700 headings — matching styles/_theme.scss typography config.
+      Tajawal covers both Latin and Arabic, so one family serves both languages.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <!--
+      Applies the theme class before first paint, so a dark-mode machine does
+      not flash a white screen while Angular boots. ThemeService reads the same
+      key and takes over from here; this only decides the very first frame.
+      Kept inline and dependency-free on purpose — an external file would be
+      another round trip before paint.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('constructerp.theme');
+          // Anything that is not an explicit 'light'/'dark' means "follow the
+          // OS" — including a missing key and the stored value 'system'.
+          var dark =
+            stored === 'dark' ||
+            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.add(dark ? 'theme-dark' : 'theme-light');
+        } catch (e) {
+          document.documentElement.classList.add('theme-light');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
 </html>

@@ -1,0 +1,66 @@
+@use 'tokens' as *;
+
+:host {
+  display: block;
+}
+
+.toolbar {
+  // White toolbar with a hairline under it, not a coloured app bar — the
+  // coloured bar reads as an older Material era than this brief targets.
+  background: $surface;
+  border-bottom: $border;
+  block-size: $toolbar-height;
+  padding-inline: $space-md;
+  gap: $space-sm;
+  box-shadow: none;
+}
+
+.menu-button {
+  display: none; // Only needed once the drawer goes into over mode.
+}
+
+.spacer {
+  flex: 1;
+}
+
+.search {
+  inline-size: 100%;
+  max-inline-size: 420px;
+}
+
+.lang-button {
+  min-inline-size: 64px;
+}
+
+// Lucide icons inside Material buttons need explicit alignment; Material
+// expects a mat-icon of a known size here.
+button svg {
+  vertical-align: middle;
+}
+
+.mat-mdc-raised-button svg {
+  margin-inline-end: $space-xs;
+}
+
+@media (max-width: 1024px) {
+  .menu-button {
+    display: inline-flex;
+  }
+}
+
+// Below 600px the fixed controls alone total ~334px, leaving the search roughly
+// 40px — unusable. It is hidden rather than shrunk to a useless stub.
+//
+// The bell stays: now that it carries a real count it earns its 48px, and the
+// primary action's label is protected by hiding the language toggle's width
+// instead (it keeps a 44px tap target as an icon-sized button).
+@media (max-width: 600px) {
+  .search {
+    display: none;
+  }
+
+  .lang-button {
+    min-inline-size: 44px;
+    padding-inline: $space-sm;
+  }
+}

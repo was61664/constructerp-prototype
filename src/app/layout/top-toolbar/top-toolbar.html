@@ -1,0 +1,34 @@
+<mat-toolbar class="toolbar">
+  <button
+    mat-icon-button
+    type="button"
+    class="menu-button"
+    [attr.aria-label]="i18n.t('menu')"
+    (click)="menuToggled.emit()"
+  >
+    <svg lucideMenu size="20" aria-hidden="true"></svg>
+  </button>
+
+  <app-global-search class="search" />
+
+  <span class="spacer"></span>
+
+  <app-notifications-menu class="notifications-button" />
+
+  <app-theme-menu />
+
+  <button
+    mat-stroked-button
+    type="button"
+    class="lang-button"
+    [attr.aria-label]="i18n.t('switchLanguage')"
+    (click)="i18n.toggleLanguage()"
+  >
+    {{ i18n.t('langToggle') }}
+  </button>
+
+  <button mat-raised-button color="primary" type="button" (click)="newRequestRequested.emit()">
+    <svg lucidePlus size="16" aria-hidden="true"></svg>
+    <span>{{ i18n.t('newRequest') }}</span>
+  </button>
+</mat-toolbar>

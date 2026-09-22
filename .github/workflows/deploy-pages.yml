@@ -30,6 +30,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Quality gates run BEFORE the build, so a commit that fails any of them
+      # never reaches the published site. Previously this workflow built and
+      # deployed whatever was pushed to main without checking anything.
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        # Chrome is preinstalled on ubuntu-latest; naming it explicitly stops
+        # karma-chrome-launcher guessing wrong on a runner image update.
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+        run: npm test -- --watch=false --browsers=ChromeHeadless
+
       - name: Build for GitHub Pages
         run: npm run build -- --base-href /constructerp-prototype/
 

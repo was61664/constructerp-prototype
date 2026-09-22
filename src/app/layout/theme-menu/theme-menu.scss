@@ -1,0 +1,7 @@
+:host {
+  display: inline-flex;
+}
+
+// The menu PANEL is rendered into the CDK overlay container, outside this
+// component's DOM, so its styles cannot live here — component encapsulation
+// would never match them. They sit in styles.scss under `.theme-menu-panel`.

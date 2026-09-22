@@ -1,0 +1,29 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gear {
+  animation: gear-turn 1.6s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+// A gear reads as machinery, so it turns at a believable speed rather than
+// whipping round like a generic spinner.
+@keyframes gear-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Reduced motion: step the gear round in eight discrete clicks instead of a
+// continuous sweep. It still communicates "working" — a frozen loading
+// indicator communicates nothing — but without the smooth rotation that
+// triggers vestibular discomfort.
+@media (prefers-reduced-motion: reduce) {
+  .gear {
+    animation-duration: 2.4s;
+    animation-timing-function: steps(8, end);
+  }
+}

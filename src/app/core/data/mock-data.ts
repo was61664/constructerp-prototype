@@ -1,0 +1,310 @@
+import type { EquipmentRequest, Inspection, RequestCheck, Rental, TransportMove } from '../models';
+import type { EquipmentDto, ProjectDto } from './api-contracts';
+
+/** Gate that must pass before a request may be submitted. */
+export function defaultRequestChecks(): RequestCheck[] {
+  return [
+    { label: 'Equipment available', passed: true },
+    { label: 'Project is active', passed: true },
+    { label: 'No idle similar equipment', passed: true },
+    { label: 'Rental period is valid', passed: true },
+    { label: 'Cost within budget', passed: true },
+    { label: 'Delivery cost entered', passed: true },
+  ];
+}
+
+/** Gate that must pass before delivery may be accepted on site. */
+export function defaultReceivingChecks(): RequestCheck[] {
+  return [
+    { label: 'Approved request exists', passed: false },
+    { label: 'Correct equipment and project', passed: false },
+    { label: 'Transport details entered', passed: false },
+    { label: 'Arrival condition documented', passed: false },
+    { label: 'Photos/videos attached', passed: false },
+    { label: 'Receiver signature captured', passed: false },
+  ];
+}
+
+/**
+ * Fallback data used when no API is configured (the GitHub Pages build).
+ * Shaped as API DTOs so the store has one mapping path, not two.
+ */
+export const SEED_PROJECTS: readonly ProjectDto[] = [
+  {
+    id: 'aaaaaaaa-0000-4000-8000-000000001001',
+    code: 'PRJ-1001',
+    name: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+    client: { en: 'Finesco Development', ar: 'فينسكو للتطوير' },
+    manager: 'M. Hassan',
+    location: { en: 'East Gate, Zone 4', ar: 'البوابة الشرقية، المنطقة 4' },
+    status: 'Active',
+    budget: 260000,
+    progress: 76,
+    startDate: null,
+    endDate: null,
+    equipmentSpend: 184000,
+    transportSpend: 24500,
+    extraSpend: 11200,
+    equipmentCount: 1,
+  },
+  {
+    id: 'aaaaaaaa-0000-4000-8000-000000001018',
+    code: 'PRJ-1018',
+    name: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+    client: { en: 'National Airports Authority', ar: 'هيئة المطارات الوطنية' },
+    manager: 'A. Farouk',
+    location: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+    status: 'Active',
+    budget: 230000,
+    progress: 64,
+    startDate: null,
+    endDate: null,
+    equipmentSpend: 139000,
+    transportSpend: 31800,
+    extraSpend: 8400,
+    equipmentCount: 1,
+  },
+  {
+    id: 'aaaaaaaa-0000-4000-8000-000000001032',
+    code: 'PRJ-1032',
+    name: { en: 'Metro Station Works', ar: 'أعمال محطة المترو' },
+    client: { en: 'Metro Projects JV', ar: 'تحالف مشاريع المترو' },
+    manager: 'L. Ibrahim',
+    location: { en: 'Metro Station Works', ar: 'أعمال محطة المترو' },
+    status: 'At Risk',
+    budget: 168000,
+    progress: 42,
+    startDate: null,
+    endDate: null,
+    equipmentSpend: 98000,
+    transportSpend: 14900,
+    extraSpend: 6200,
+    equipmentCount: 1,
+  },
+];
+
+export const SEED_EQUIPMENT: readonly EquipmentDto[] = [
+  {
+    id: 'bbbbbbbb-0000-4000-8000-000000000104',
+    code: 'EQ-104',
+    name: { en: 'Crawler Crane 80T', ar: 'ونش زاحف 80 طن' },
+    equipmentTypeId: 'cccccccc-0000-4000-8000-000000000001',
+    equipmentType: { en: 'Lifting', ar: 'رفع' },
+    ownership: 'Owned',
+    projectId: 'aaaaaaaa-0000-4000-8000-000000001001',
+    projectCode: 'PRJ-1001',
+    projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+    status: 'Working',
+    utilization: 86,
+    dailyCost: 1250,
+    nextAction: { en: 'Routine inspection tomorrow', ar: 'تفتيش دوري غدا' },
+  },
+  {
+    id: 'bbbbbbbb-0000-4000-8000-000000000219',
+    code: 'EQ-219',
+    name: { en: 'Concrete Pump 42m', ar: 'مضخة خرسانة 42 م' },
+    equipmentTypeId: 'cccccccc-0000-4000-8000-000000000002',
+    equipmentType: { en: 'Concrete', ar: 'خرسانة' },
+    ownership: 'External Rental',
+    projectId: 'aaaaaaaa-0000-4000-8000-000000001018',
+    projectCode: 'PRJ-1018',
+    projectName: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+    status: 'Return Scheduled',
+    utilization: 72,
+    dailyCost: 980,
+    nextAction: { en: 'Return booking confirmed', ar: 'تم تأكيد حجز الرجوع' },
+  },
+  {
+    id: 'bbbbbbbb-0000-4000-8000-000000000331',
+    code: 'EQ-331',
+    name: { en: 'Lowbed Trailer', ar: 'مقطورة لوبد' },
+    equipmentTypeId: 'cccccccc-0000-4000-8000-000000000003',
+    equipmentType: { en: 'Transportation', ar: 'نقل' },
+    ownership: 'Owned',
+    // Unassigned: the prototype pointed this at "Ring Road Package B", which
+    // never existed as a project record. Inventing one to satisfy a string
+    // match is the bug the foreign key removes.
+    projectId: null,
+    projectCode: null,
+    projectName: null,
+    status: 'In Transit',
+    utilization: 64,
+    dailyCost: 410,
+    nextAction: { en: 'Arrives at site 16:30', ar: 'الوصول للموقع 16:30' },
+  },
+  {
+    id: 'bbbbbbbb-0000-4000-8000-000000000448',
+    code: 'EQ-448',
+    name: { en: 'Tower Light Set', ar: 'وحدة إضاءة برجية' },
+    equipmentTypeId: 'cccccccc-0000-4000-8000-000000000004',
+    equipmentType: { en: 'Site Support', ar: 'دعم الموقع' },
+    ownership: 'External Rental',
+    projectId: 'aaaaaaaa-0000-4000-8000-000000001032',
+    projectCode: 'PRJ-1032',
+    projectName: { en: 'Metro Station Works', ar: 'أعمال محطة المترو' },
+    status: 'Idle',
+    utilization: 18,
+    dailyCost: 160,
+    nextAction: { en: 'Review rental continuation', ar: 'مراجعة استمرار الإيجار' },
+  },
+  {
+    id: 'bbbbbbbb-0000-4000-8000-000000000512',
+    code: 'EQ-512',
+    name: { en: 'Excavator 36T', ar: 'حفار 36 طن' },
+    equipmentTypeId: 'cccccccc-0000-4000-8000-000000000005',
+    equipmentType: { en: 'Earthworks', ar: 'أعمال ترابية' },
+    ownership: 'Owned',
+    // Unassigned for the same reason: "Harbor Yard" was never a project.
+    projectId: null,
+    projectCode: null,
+    projectName: null,
+    status: 'Inspection Due',
+    utilization: 57,
+    dailyCost: 690,
+    nextAction: { en: 'Operator checklist missing', ar: 'قائمة فحص المشغل غير مكتملة' },
+  },
+];
+
+export const SEED_REQUESTS: readonly EquipmentRequest[] = [
+  {
+    id: 'REQ-2407',
+    equipment: 'Excavator 36T',
+    project: 'Harbor Yard',
+    ownership: 'Owned',
+    requestedBy: 'K. Mansour',
+    requiredDate: 'Jul 20',
+    returnDate: 'Jul 28',
+    location: 'East Gate, Zone 4',
+    purpose: 'Foundation excavation support',
+    estimatedCost: 5520,
+    stage: 'Receiving',
+    status: 'Approved',
+    checks: defaultRequestChecks(),
+    receivingChecks: [
+      { label: 'Approved request exists', passed: true },
+      { label: 'Correct equipment and project', passed: true },
+      { label: 'Transport details entered', passed: true },
+      { label: 'Arrival condition documented', passed: false },
+      { label: 'Photos/videos attached', passed: false },
+      { label: 'Receiver signature captured', passed: false },
+    ],
+  },
+  {
+    id: 'REQ-2411',
+    equipment: 'Tower Light Set',
+    project: 'Metro Station Works',
+    ownership: 'External Rental',
+    requestedBy: 'L. Ibrahim',
+    requiredDate: 'Jul 18',
+    returnDate: 'Jul 22',
+    location: 'East Gate, Zone 4',
+    purpose: 'Night shift lighting',
+    estimatedCost: 940,
+    stage: 'Inspection',
+    status: 'Inspection Pending',
+    checks: [
+      { label: 'Equipment available', passed: true },
+      { label: 'Project is active', passed: true },
+      { label: 'No idle similar equipment', passed: false },
+      { label: 'Rental period is valid', passed: true },
+      { label: 'Cost within budget', passed: true },
+      { label: 'Delivery cost entered', passed: true },
+    ],
+    receivingChecks: [
+      { label: 'Approved request exists', passed: true },
+      { label: 'Correct equipment and project', passed: true },
+      { label: 'Transport details entered', passed: true },
+      { label: 'Arrival condition documented', passed: true },
+      { label: 'Photos/videos attached', passed: true },
+      { label: 'Receiver signature captured', passed: true },
+    ],
+  },
+];
+
+export const SEED_RENTALS: readonly Rental[] = [
+  {
+    vendor: 'Delta Heavy Rentals',
+    asset: 'Concrete Pump 42m',
+    project: 'Airport Expansion',
+    returnDate: 'Jul 24',
+    amount: 9800,
+    status: 'Return Scheduled',
+  },
+  {
+    vendor: 'Prime Lift Services',
+    asset: 'Mobile Crane 120T',
+    project: 'Downtown Tower',
+    returnDate: 'Jul 21',
+    amount: 14600,
+    status: 'Active',
+  },
+  {
+    vendor: 'SitePower Rental',
+    asset: 'Tower Light Set',
+    project: 'Metro Station Works',
+    returnDate: 'Jul 15',
+    amount: 1920,
+    status: 'Overdue',
+  },
+];
+
+export const SEED_INSPECTIONS: readonly Inspection[] = [
+  {
+    asset: 'Crawler Crane 80T',
+    project: 'Downtown Tower',
+    status: 'Passed',
+    media: '8 photos, 1 video',
+    inspector: 'M. Hassan',
+  },
+  {
+    asset: 'Excavator 36T',
+    project: 'Harbor Yard',
+    status: 'Attention',
+    media: '5 photos',
+    inspector: 'S. Nabil',
+  },
+  {
+    asset: 'Concrete Pump 42m',
+    project: 'Airport Expansion',
+    status: 'Pending Signature',
+    media: '6 photos, signature draft',
+    inspector: 'A. Farouk',
+  },
+];
+
+/** Previously hard-coded in the template; now seeded like every other entity. */
+export const SEED_TRANSPORT: readonly TransportMove[] = [
+  {
+    id: 'TRP-5001',
+    origin: 'Yard A',
+    destination: 'Downtown Tower',
+    kind: 'Delivery',
+    asset: 'Lowbed Trailer',
+    project: 'Downtown Tower',
+    cost: 2400,
+    status: 'In Transit',
+    schedule: 'ETA 16:30',
+  },
+  {
+    id: 'TRP-5002',
+    origin: 'Airport Expansion',
+    destination: 'Vendor Yard',
+    kind: 'Return move',
+    asset: 'Concrete Pump 42m',
+    project: 'Airport Expansion',
+    cost: 3150,
+    status: 'Scheduled',
+    schedule: 'Jul 24',
+  },
+  {
+    id: 'TRP-5003',
+    origin: 'Harbor Yard',
+    destination: 'Service Center',
+    kind: 'Inspection transfer',
+    asset: 'Excavator 36T',
+    project: 'Harbor Yard',
+    cost: 1100,
+    status: 'Awaiting Approval',
+    schedule: 'Jul 26',
+  },
+];
