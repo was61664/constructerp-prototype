@@ -435,17 +435,29 @@ p {
   font-size: 12px;
 }
 
-// Thin, brand-coloured scrollbars. Firefox takes the standard properties;
-// WebKit/Blink still needs its own pseudo-elements, so both are set.
-* {
-  scrollbar-width: thin;
-  scrollbar-color: $scrollbar-thumb $scrollbar-track;
+// Thin, brand-coloured scrollbars.
+//
+// The two mechanisms CONFLICT: when the standard `scrollbar-width` /
+// `scrollbar-color` properties are present, Chrome ignores every
+// `::-webkit-scrollbar` rule. Setting both meant the precise pixel width was
+// silently dropped and Chrome's own `thin` (~11px) won, which still read as a
+// bar rather than a line.
+//
+// So the standard properties are applied only where the WebKit pseudo-elements
+// do NOT exist — Firefox — and WebKit/Blink gets the exact size it was asked
+// for.
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: $scrollbar-thumb $scrollbar-track;
+  }
 }
 
 ::-webkit-scrollbar {
-  // A hairline, not a slab: 8px read as a solid blue bar down the page.
-  inline-size: 4px;
-  block-size: 4px;
+  // `width`/`height`, not the logical properties: the scrollbar pseudo-elements
+  // predate logical sizing and do not honour inline-size.
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -455,9 +467,6 @@ p {
 ::-webkit-scrollbar-thumb {
   background: $scrollbar-thumb;
   border-radius: 999px;
-  // Slightly recessed at rest so it reads as a line rather than a fill, and
-  // resolves to full strength when the user actually reaches for it.
-  opacity: 0.85;
 
   &:hover {
     background: $scrollbar-thumb-hover;
