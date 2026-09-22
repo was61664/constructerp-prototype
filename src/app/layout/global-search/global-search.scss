@@ -1,0 +1,140 @@
+@use 'tokens' as *;
+
+:host {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 420px;
+}
+
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  inset-inline-start: $space-sm;
+  display: flex;
+  color: $text-hint;
+  pointer-events: none;
+}
+
+.search-input {
+  inline-size: 100%;
+  block-size: 38px;
+  padding-inline: 36px 36px;
+  border: $border;
+  border-radius: $radius;
+  background: $surface-sunken;
+  color: $text-primary;
+  font: inherit;
+  font-size: 13px;
+
+  &::placeholder {
+    color: $text-hint;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $brand-primary;
+    background: $surface;
+  }
+}
+
+.search-clear {
+  position: absolute;
+  inset-inline-end: $space-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: 0;
+  border-radius: $radius;
+  background: none;
+  color: $text-hint;
+  cursor: pointer;
+
+  &:hover {
+    color: $text-primary;
+    background: $surface-hover;
+  }
+}
+
+.search-panel {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  inset-block-start: calc(100% + #{$space-xs});
+  z-index: 20;
+  max-block-size: 60vh;
+  overflow-y: auto;
+  padding: $space-sm 0;
+  background: $surface;
+  border: $border;
+  border-radius: $radius;
+  box-shadow: $shadow-overlay;
+}
+
+.search-group + .search-group {
+  margin-block-start: $space-xs;
+  padding-block-start: $space-xs;
+  border-top: $border;
+}
+
+.search-group-label {
+  padding: $space-xs $space-md;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-hint;
+}
+
+.search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  inline-size: 100%;
+  padding: $space-sm $space-md;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+
+  &:hover {
+    background: $surface-hover;
+  }
+}
+
+// Keyboard highlight. A left marker as well as a background, so the active row
+// is distinguishable without relying on a subtle fill alone.
+.search-result-active {
+  background: $brand-primary-light;
+  box-shadow: inset 3px 0 0 0 $brand-primary;
+}
+
+html[dir='rtl'] .search-result-active {
+  box-shadow: inset -3px 0 0 0 $brand-primary;
+}
+
+.search-result-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-primary;
+}
+
+.search-result-subtitle {
+  font-size: 11px;
+  color: $text-hint;
+}
+
+.search-empty {
+  padding: $space-md;
+  font-size: 13px;
+  color: $text-secondary;
+  text-align: center;
+}

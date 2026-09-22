@@ -237,20 +237,108 @@ p {
   height: 6px;
 }
 
+// Notifications panel. Same reason as the theme menu below: the panel renders
+// into the CDK overlay container, outside the component's own DOM.
+.notifications-panel {
+  min-inline-size: 300px;
+  max-inline-size: 360px;
+
+  .item {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-sm;
+    inline-size: 100%;
+    padding-block: $space-xs;
+  }
+
+  // Tone is carried by a dot AND by the text of each entry, never colour alone.
+  .dot {
+    inline-size: 8px;
+    block-size: 8px;
+    margin-block-start: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tone-danger {
+    background: $status-danger-fg;
+  }
+
+  .tone-warn {
+    background: $status-warn-fg;
+  }
+
+  .tone-info {
+    background: $status-info-fg;
+  }
+
+  .tone-success {
+    background: $status-success-fg;
+  }
+
+  .tone-neutral {
+    background: $status-neutral-fg;
+  }
+
+  .item-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .item-title {
+    font-size: 13px;
+    line-height: 18px;
+    color: $text-primary;
+    white-space: normal;
+  }
+
+  .item-detail {
+    font-size: 11px;
+    line-height: 16px;
+    color: $text-hint;
+    white-space: normal;
+  }
+
+  .mat-mdc-menu-item {
+    block-size: auto;
+    min-block-size: 0;
+  }
+
+  .empty {
+    padding: $space-md;
+    text-align: center;
+  }
+
+  .empty-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: $text-primary;
+  }
+
+  .empty-hint {
+    margin-block-start: $space-xs;
+    font-size: 11px;
+    color: $text-hint;
+  }
+}
+
 // Theme picker menu. Lives here, not in theme-menu.scss, because the panel is
 // rendered into the CDK overlay container — outside the component's DOM, where
 // view-encapsulated styles can never reach it.
+// Shared by both overlay panels.
+.theme-menu-panel .menu-heading,
+.notifications-panel .menu-heading {
+  padding: $space-sm $space-md $space-xs;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-hint;
+}
+
 .theme-menu-panel {
   min-inline-size: 236px;
-
-  .menu-heading {
-    padding: $space-sm $space-md $space-xs;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: $text-hint;
-  }
 
   .item {
     display: flex;

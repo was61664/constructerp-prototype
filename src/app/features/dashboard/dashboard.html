@@ -4,11 +4,12 @@
     [title]="i18n.t('heading')"
     [subtitle]="i18n.t('fleetVisibility')"
   >
-    <!--
-      Export is not implemented yet. Disabled with a tooltip rather than a
-      button that looks live and does nothing when clicked.
-    -->
-    <button mat-stroked-button type="button" disabled [matTooltip]="i18n.t('prototypeOutput')">
+    <button
+      mat-stroked-button
+      type="button"
+      [matTooltip]="i18n.t('exportUtilization')"
+      (click)="exportUtilization()"
+    >
       <svg lucideDownload size="16" aria-hidden="true"></svg>
       <span>{{ i18n.t('export') }}</span>
     </button>

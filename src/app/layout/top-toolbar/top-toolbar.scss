@@ -24,39 +24,8 @@
 }
 
 .search {
-  position: relative;
-  display: flex;
-  align-items: center;
   inline-size: 100%;
   max-inline-size: 420px;
-}
-
-.search-icon {
-  position: absolute;
-  inset-inline-start: $space-sm;
-  display: flex;
-  color: $text-hint;
-  pointer-events: none;
-}
-
-.search-input {
-  inline-size: 100%;
-  block-size: 38px;
-  padding-inline: 36px $space-md;
-  border: $border;
-  border-radius: $radius;
-  background: $surface-sunken;
-  color: $text-primary;
-  font: inherit;
-  font-size: 13px;
-
-  &::placeholder {
-    color: $text-hint;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-  }
 }
 
 .lang-button {
@@ -77,18 +46,21 @@ button svg {
   .menu-button {
     display: inline-flex;
   }
+}
 
+// Below 600px the fixed controls alone total ~334px, leaving the search roughly
+// 40px — unusable. It is hidden rather than shrunk to a useless stub.
+//
+// The bell stays: now that it carries a real count it earns its 48px, and the
+// primary action's label is protected by hiding the language toggle's width
+// instead (it keeps a 44px tap target as an icon-sized button).
+@media (max-width: 600px) {
   .search {
     display: none;
   }
-}
 
-// At 375px the five toolbar controls total ~382px and the primary action's
-// label gets clipped. The notifications bell is the one to drop: it is
-// non-functional in this phase, so hiding it costs nothing and buys back the
-// 48px that keeps "New Request" readable.
-@media (max-width: 600px) {
-  .notifications-button {
-    display: none;
+  .lang-button {
+    min-inline-size: 44px;
+    padding-inline: $space-sm;
   }
 }

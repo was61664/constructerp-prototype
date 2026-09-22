@@ -1,0 +1,72 @@
+<div class="search-field">
+  <span class="search-icon" aria-hidden="true">
+    <svg lucideSearch size="18"></svg>
+  </span>
+
+  <input
+    #searchInput
+    type="text"
+    class="search-input"
+    role="combobox"
+    autocomplete="off"
+    aria-autocomplete="list"
+    aria-controls="search-results"
+    [attr.aria-expanded]="showPanel()"
+    [attr.aria-activedescendant]="activeKey() ? 'result-' + activeKey() : null"
+    [attr.aria-label]="i18n.t('search')"
+    [attr.placeholder]="i18n.t('search')"
+    [value]="search.query()"
+    (input)="onInput($any($event.target).value)"
+    (keydown)="onKeydown($event)"
+    (focus)="open.set(true)"
+    (blur)="onBlur()"
+  />
+
+  @if (search.hasQuery()) {
+    <button
+      type="button"
+      class="search-clear"
+      [attr.aria-label]="i18n.t('searchClear')"
+      (click)="clear()"
+    >
+      <svg lucideX size="16" aria-hidden="true"></svg>
+    </button>
+  }
+</div>
+
+@if (showPanel()) {
+  <div class="search-panel">
+    <!-- Announces result counts to screen readers as the user types. -->
+    <p class="visually-hidden" aria-live="polite">
+      {{ i18n.format('searchCount', { count: i18n.formatInteger(search.resultCount()) }) }}
+    </p>
+
+    @if (search.resultCount()) {
+      <div id="search-results" role="listbox" [attr.aria-label]="i18n.t('searchResults')">
+        @for (group of search.groups(); track group.module) {
+          <div class="search-group" role="group" [attr.aria-label]="group.label">
+            <p class="search-group-label">{{ group.label }}</p>
+            @for (result of group.results; track result.key) {
+              <button
+                type="button"
+                class="search-result"
+                role="option"
+                [id]="'result-' + result.key"
+                [class.search-result-active]="activeKey() === result.key"
+                [attr.aria-selected]="activeKey() === result.key"
+                (click)="go(result)"
+              >
+                <span class="search-result-title">{{ result.title }}</span>
+                <span class="search-result-subtitle">{{ result.subtitle }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="search-empty">
+        {{ i18n.format('searchNoResults', { term: search.query() }) }}
+      </p>
+    }
+  </div>
+}

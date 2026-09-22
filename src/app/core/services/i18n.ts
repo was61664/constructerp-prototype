@@ -80,6 +80,20 @@ export class I18nService {
   }
 
   /**
+   * Every known label for a data value, across ALL languages.
+   *
+   * `text()` resolves to the active language only, which is right for display
+   * but wrong for search: on a bilingual site an Arabic speaker types Arabic
+   * whether or not the interface is currently in Arabic. Matching on every
+   * variant makes search work in either language, in either UI.
+   */
+  labelVariants(value: string): string[] {
+    const arabic = dataLabels.ar[value];
+
+    return arabic ? [value, arabic] : [value];
+  }
+
+  /**
    * Record identifiers (PRJ-1001, EQ-104, REQ-2407) are returned untouched.
    *
    * They are codes, not quantities: converting their digits to Arabic-Indic

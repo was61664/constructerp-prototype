@@ -1,0 +1,38 @@
+<button
+  mat-icon-button
+  type="button"
+  class="bell"
+  [matMenuTriggerFor]="menu"
+  [matTooltip]="i18n.t('notifications')"
+  [attr.aria-label]="i18n.t('notifications') + ': ' + i18n.formatInteger(notifications.count())"
+>
+  <svg lucideBell size="20" aria-hidden="true"></svg>
+
+  @if (notifications.count()) {
+    <!-- aria-hidden: the count is already in the button's own label. -->
+    <span class="badge" aria-hidden="true">{{ i18n.formatInteger(notifications.count()) }}</span>
+  }
+</button>
+
+<mat-menu #menu="matMenu" class="notifications-panel">
+  <div class="menu-heading" role="presentation">{{ i18n.t('notifications') }}</div>
+
+  @if (notifications.count()) {
+    @for (item of notifications.notifications(); track item.key) {
+      <button mat-menu-item type="button" (click)="open(item)">
+        <span class="item">
+          <span class="dot" [class]="'tone-' + item.tone" aria-hidden="true"></span>
+          <span class="item-text">
+            <span class="item-title">{{ item.title }}</span>
+            <span class="item-detail">{{ item.detail }}</span>
+          </span>
+        </span>
+      </button>
+    }
+  } @else {
+    <div class="empty" role="presentation">
+      <p class="empty-title">{{ i18n.t('notificationsEmpty') }}</p>
+      <p class="empty-hint">{{ i18n.t('notificationsEmptyHint') }}</p>
+    </div>
+  }
+</mat-menu>

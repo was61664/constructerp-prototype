@@ -4,14 +4,14 @@
     [title]="i18n.t('reportPack')"
     [subtitle]="i18n.t('reportNote')"
   >
-    <button mat-stroked-button type="button" disabled [matTooltip]="i18n.t('prototypeOutput')">
+    <button mat-stroked-button type="button" (click)="exportAll()">
       <svg lucideDownload size="16" aria-hidden="true"></svg>
       <span>{{ i18n.t('export') }}</span>
     </button>
   </app-page-header>
 
   <div class="grid grid-thirds">
-    @for (report of reports(); track report.titleKey) {
+    @for (report of reports(); track report.id) {
       <app-section-card [eyebrow]="i18n.t('reports')" [title]="i18n.t(report.titleKey)">
         <div class="report-body">
           <p class="report-value text-numeric">{{ report.value }}</p>
@@ -19,10 +19,11 @@
           <button
             mat-stroked-button
             type="button"
-            disabled
-            [matTooltip]="i18n.t('prototypeOutput')"
+            [attr.aria-label]="i18n.t('export') + ': ' + i18n.t(report.titleKey)"
+            (click)="export(report.id)"
           >
-            {{ i18n.t('export') }}
+            <svg lucideDownload size="16" aria-hidden="true"></svg>
+            <span>{{ i18n.t('export') }}</span>
           </button>
         </div>
       </app-section-card>

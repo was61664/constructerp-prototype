@@ -6,6 +6,9 @@ import { App } from './app';
 import { routes } from './app.routes';
 import { ErpStore } from './core/services/erp-store';
 import { I18nService } from './core/services/i18n';
+import { ExportService } from './core/services/export';
+import { NotificationsService } from './core/services/notifications';
+import { SearchService } from './core/services/search';
 import { ThemeService } from './core/services/theme';
 import { BusyState } from './shared/utils/busy-state';
 
@@ -185,6 +188,178 @@ describe('ThemeService', () => {
 
     theme.cycle();
     expect(theme.preference()).toBe('light');
+  });
+});
+
+describe('SearchService', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({});
+  });
+
+  afterEach(() => localStorage.clear());
+
+  it('should return nothing for an empty query', () => {
+    const search = TestBed.inject(SearchService);
+
+    expect(search.hasQuery()).toBeFalse();
+    expect(search.groups()).toEqual([]);
+  });
+
+  it('should find records by English term', () => {
+    const search = TestBed.inject(SearchService);
+    search.query.set('excavator');
+
+    expect(search.resultCount()).toBeGreaterThan(0);
+    expect(search.groups().some((group) => group.module === 'equipment')).toBeTrue();
+  });
+
+  it('should find the same records by Arabic term while the UI is English', () => {
+    const search = TestBed.inject(SearchService);
+
+    search.query.set('excavator');
+    const english = search.resultCount();
+
+    search.query.set('حفار');
+
+    // Regression guard: matching through i18n.text() restricted search to the
+    // active UI language, so Arabic queries silently returned nothing.
+    expect(search.resultCount()).toBe(english);
+  });
+
+  it('should fold Arabic-Indic digits so ٨٠ matches 80', () => {
+    const search = TestBed.inject(SearchService);
+
+    search.query.set('80');
+    const latin = search.resultCount();
+
+    search.query.set('٨٠');
+
+    expect(search.resultCount()).toBe(latin);
+    expect(latin).toBeGreaterThan(0);
+  });
+
+  it('should group results by module and cap each group', () => {
+    const search = TestBed.inject(SearchService);
+    search.query.set('a');
+
+    for (const group of search.groups()) {
+      expect(group.results.length).toBeLessThanOrEqual(4);
+    }
+  });
+});
+
+describe('NotificationsService', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({});
+  });
+
+  afterEach(() => localStorage.clear());
+
+  it('should derive one entry per overdue rental', () => {
+    const notifications = TestBed.inject(NotificationsService);
+    const store = TestBed.inject(ErpStore);
+    const overdue = store.rentals().filter((rental) => rental.status === 'Overdue').length;
+
+    const entries = notifications
+      .notifications()
+      .filter((item) => item.key.startsWith('rental-overdue:'));
+
+    expect(entries.length).toBe(overdue);
+  });
+
+  it('should disappear when the underlying record is fixed', async () => {
+    const notifications = TestBed.inject(NotificationsService);
+    const store = TestBed.inject(ErpStore);
+    const idle = store.equipment().find((item) => item.status === 'Idle');
+
+    expect(idle).toBeTruthy();
+    expect(notifications.notifications().some((n) => n.key === `asset:${idle!.id}`)).toBeTrue();
+
+    await store.updateEquipment(idle!.id, { ...idle!, status: 'Working' });
+
+    // The feed is derived, not stored — nothing needs dismissing.
+    expect(notifications.notifications().some((n) => n.key === `asset:${idle!.id}`)).toBeFalse();
+  });
+});
+
+describe('ExportService', () => {
+  beforeEach(() => TestBed.configureTestingModule({}));
+
+  /** Captures the generated file instead of triggering a real download. */
+  function blobFrom(run: (service: ExportService) => void): Blob {
+    let captured: Blob | undefined;
+
+    spyOn(URL, 'createObjectURL').and.callFake((source: Blob | MediaSource) => {
+      captured = source as Blob;
+      return 'blob:stub';
+    });
+    spyOn(URL, 'revokeObjectURL');
+
+    run(TestBed.inject(ExportService));
+
+    if (!captured) {
+      throw new Error('exportCsv did not produce a blob');
+    }
+
+    return captured;
+  }
+
+  async function csvFrom(run: (service: ExportService) => void): Promise<string> {
+    return blobFrom(run).text();
+  }
+
+  it('should start with a UTF-8 BOM so Excel reads Arabic correctly', async () => {
+    const blob = blobFrom((service) =>
+      service.exportCsv(
+        'test',
+        [{ header: 'Name', value: (r: { name: string }) => r.name }],
+        [{ name: 'ونش زاحف' }],
+      ),
+    );
+
+    // Must be checked as BYTES: Blob.text() decodes UTF-8 and strips a leading
+    // U+FEFF, so reading it as a string always hides whether the BOM shipped.
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+
+    expect([bytes[0], bytes[1], bytes[2]]).toEqual([0xef, 0xbb, 0xbf]);
+    expect(await blob.text()).toContain('ونش زاحف');
+  });
+
+  it('should quote values containing commas and double embedded quotes', async () => {
+    const csv = await csvFrom((service) =>
+      service.exportCsv(
+        'test',
+        [{ header: 'Name', value: (r: { name: string }) => r.name }],
+        [{ name: 'Ring Road, Package "B"' }],
+      ),
+    );
+
+    // Unquoted, this row would silently split into two columns.
+    expect(csv).toContain('"Ring Road, Package ""B"""');
+  });
+
+  it('should emit a header row followed by one row per record', async () => {
+    const csv = await csvFrom((service) =>
+      service.exportCsv(
+        'test',
+        [
+          { header: 'Id', value: (r: { id: string; qty: number }) => r.id },
+          { header: 'Qty', value: (r: { id: string; qty: number }) => r.qty },
+        ],
+        [
+          { id: 'EQ-1', qty: 2 },
+          { id: 'EQ-2', qty: 5 },
+        ],
+      ),
+    );
+
+    const lines = csv.replace('﻿', '').trim().split('\r\n');
+
+    expect(lines[0]).toBe('Id,Qty');
+    expect(lines[1]).toBe('EQ-1,2');
+    expect(lines.length).toBe(3);
   });
 });
 

@@ -9,36 +9,11 @@
     <svg lucideMenu size="20" aria-hidden="true"></svg>
   </button>
 
-  <!--
-    Search is presentational in this phase: there is no index to query yet.
-    It is marked disabled rather than silently inert so the state is honest
-    to both sighted and assistive-technology users.
-  -->
-  <div class="search">
-    <span class="search-icon" aria-hidden="true">
-      <svg lucideSearch size="18"></svg>
-    </span>
-    <input
-      type="search"
-      class="search-input"
-      disabled
-      [attr.aria-label]="i18n.t('search')"
-      [attr.placeholder]="i18n.t('search')"
-    />
-  </div>
+  <app-global-search class="search" />
 
   <span class="spacer"></span>
 
-  <button
-    mat-icon-button
-    type="button"
-    class="notifications-button"
-    disabled
-    [attr.aria-label]="i18n.t('notifications')"
-    [matTooltip]="i18n.t('notifications')"
-  >
-    <svg lucideBell size="20" aria-hidden="true"></svg>
-  </button>
+  <app-notifications-menu class="notifications-button" />
 
   <app-theme-menu />
 
