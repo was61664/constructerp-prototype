@@ -10,6 +10,7 @@ import type {
   SaveEquipmentRequest,
   SaveProjectRequest,
   SaveRequestRequest,
+  TransportMoveDto,
   VendorDto,
 } from '../data/api-contracts';
 import { ErpGateway } from '../data/erp-gateway';
@@ -29,6 +30,7 @@ import type {
   ProjectCostLine,
   ProjectRecord,
   Rental,
+  TransportAction,
   TransportMove,
   Vendor,
 } from '../models';
@@ -43,7 +45,7 @@ import { I18nService } from './i18n';
  * Arabic re-derives the names from data already in memory rather than
  * refetching every list.
  *
- * Inspections and transport still come from localStorage — those endpoints do
+ * Inspections are the last module still held in memory — that endpoint does
  * not exist yet. The backend is being migrated one module at a time and this
  * class is where the halves meet.
  */
@@ -59,6 +61,7 @@ export class ErpStore {
   private readonly requestDtos = signal<RequestDto[]>([]);
   private readonly rentalDtos = signal<RentalDto[]>([...SEED_RENTALS]);
   private readonly vendorDtos = signal<VendorDto[]>([...SEED_VENDORS]);
+  private readonly transportDtos = signal<TransportMoveDto[]>([...SEED_TRANSPORT]);
 
   private readonly loadingSignal = signal(false);
   private readonly loadErrorSignal = signal<string | null>(null);
@@ -195,9 +198,40 @@ export class ErpStore {
     })),
   );
 
+  /**
+   * `status`, `isLate` and `availableActions` all come straight from the DTO.
+   *
+   * Each is derived server-side from the move's event timestamps on every
+   * read, so nothing here recomputes them — a second implementation in the
+   * browser is exactly what would drift.
+   */
+  readonly transportMoves = computed<TransportMove[]>(() =>
+    this.transportDtos().map((dto) => ({
+      id: dto.id,
+      code: dto.code,
+      equipmentId: dto.equipmentId,
+      assetCode: dto.equipmentCode,
+      asset: this.pick(dto.equipmentName),
+      projectId: dto.projectId,
+      project: dto.projectName ? this.pick(dto.projectName) : '',
+      origin: this.pick(dto.origin),
+      destination: this.pick(dto.destination),
+      kind: dto.kind,
+      schedule: dto.scheduledFor,
+      approvedAt: dto.approvedAt,
+      departedAt: dto.departedAt,
+      arrivedAt: dto.arrivedAt,
+      cancelledAt: dto.cancelledAt,
+      cost: dto.cost,
+      status: dto.status,
+      isLate: dto.isLate,
+      availableActions: dto.availableActions,
+      notes: this.pick(dto.notes),
+    })),
+  );
+
   // --- Entities still held locally ------------------------------------------
   readonly inspections = signal<Inspection[]>([...SEED_INSPECTIONS]).asReadonly();
-  readonly transportMoves = signal<TransportMove[]>([...SEED_TRANSPORT]).asReadonly();
 
   // --- Selection ------------------------------------------------------------
   private readonly selectedEquipmentIdSignal = signal<string>('');
@@ -266,14 +300,17 @@ export class ErpStore {
     this.loadErrorSignal.set(null);
 
     try {
-      const [projects, equipment, types, requests, rentals, vendors] = await Promise.all([
-        this.gateway.getProjects(),
-        this.gateway.getEquipment(),
-        this.gateway.getEquipmentTypes(),
-        this.gateway.getRequests(),
-        this.gateway.getRentals(),
-        this.gateway.getVendors(),
-      ]);
+      const [projects, equipment, types, requests, rentals, vendors, transport] = await Promise.all(
+        [
+          this.gateway.getProjects(),
+          this.gateway.getEquipment(),
+          this.gateway.getEquipmentTypes(),
+          this.gateway.getRequests(),
+          this.gateway.getRentals(),
+          this.gateway.getVendors(),
+          this.gateway.getTransportMoves(),
+        ],
+      );
 
       this.projectDtos.set(projects);
       this.equipmentDtos.set(equipment);
@@ -281,6 +318,7 @@ export class ErpStore {
       this.requestDtos.set(requests);
       this.rentalDtos.set(rentals);
       this.vendorDtos.set(vendors);
+      this.transportDtos.set(transport);
 
       if (!this.selectedEquipmentIdSignal() && equipment.length) {
         this.selectedEquipmentIdSignal.set(equipment[0].id);
@@ -459,6 +497,33 @@ export class ErpStore {
         ? rentals.map((item) => (item.id === rental.id ? rental : item))
         : [rental, ...rentals],
     );
+  }
+
+  // --- Transport ------------------------------------------------------------
+
+  /**
+   * Records one event and lets the API re-derive the status.
+   *
+   * Deliberately one method for all four transitions rather than a
+   * `setTransportStatus`: the action names are the events, and the API decides
+   * whether each is allowed. A refusal propagates so the caller can show the
+   * server's own sentence.
+   */
+  async transitionTransportMove(id: string, action: TransportAction): Promise<void> {
+    const updated = await this.gateway.transitionTransportMove(id, action);
+
+    this.transportDtos.update((moves) => moves.map((move) => (move.id === id ? updated : move)));
+
+    // Departure and arrival move the asset, so its own status may have changed.
+    if (action === 'depart' || action === 'arrive') {
+      this.equipmentDtos.set(await this.gateway.getEquipment());
+    }
+  }
+
+  async deleteTransportMove(id: string): Promise<void> {
+    await this.gateway.deleteTransportMove(id);
+
+    this.transportDtos.update((moves) => moves.filter((move) => move.id !== id));
   }
 
   // --- Cross-entity lookups -------------------------------------------------

@@ -36,6 +36,8 @@ const STATUS_TONES: Readonly<Record<string, StatusTone>> = {
   // Transport
   Scheduled: 'info',
   'Awaiting Approval': 'warn',
+  Completed: 'success',
+  Cancelled: 'neutral',
 };
 
 /**

@@ -1,6 +1,7 @@
 import type { EquipmentStatus, Ownership } from '../models/equipment';
 import type { ProjectStatus } from '../models/project';
 import type { RentalStatus } from '../models/rental';
+import type { TransportAction, TransportKind, TransportStatus } from '../models/transport-move';
 import type { RequestStage, RequestStatus } from '../models/equipment-request';
 
 /**
@@ -198,5 +199,46 @@ export interface SaveRentalRequest {
   startedOn: string;
   expectedReturnOn: string;
   amount: number;
+  notes: LocalizedTextDto | null;
+}
+
+export interface TransportMoveDto {
+  id: string;
+  code: string;
+  equipmentId: string;
+  equipmentCode: string;
+  equipmentName: LocalizedTextDto;
+  projectId: string | null;
+  projectCode: string | null;
+  projectName: LocalizedTextDto | null;
+  origin: LocalizedTextDto;
+  destination: LocalizedTextDto;
+  kind: TransportKind;
+  scheduledFor: string;
+  approvedAt: string | null;
+  departedAt: string | null;
+  arrivedAt: string | null;
+  cancelledAt: string | null;
+  cost: number;
+  notes: LocalizedTextDto;
+  /** Derived by the API from the timestamps above; never sent back. */
+  status: TransportStatus;
+  isLate: boolean;
+  availableActions: TransportAction[];
+}
+
+/**
+ * Note the absence of status: the API refuses to take one. A move becomes
+ * In Transit by its departure being recorded, not by anyone saying so.
+ */
+export interface SaveTransportMoveRequest {
+  code: string;
+  equipmentId: string;
+  projectId: string | null;
+  origin: LocalizedTextDto;
+  destination: LocalizedTextDto;
+  kind: TransportKind;
+  scheduledFor: string;
+  cost: number;
   notes: LocalizedTextDto | null;
 }

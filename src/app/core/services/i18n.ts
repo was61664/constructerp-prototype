@@ -144,7 +144,10 @@ export class I18nService {
       return '—';
     }
 
-    const parsed = new Date(`${value}T00:00:00`);
+    // Accepts a date-only string or a full timestamp. Appending the midnight
+    // suffix to a value that already carries a time produces an Invalid Date,
+    // which is how a raw ISO string used to reach the screen.
+    const parsed = new Date(value.includes('T') ? value : `${value}T00:00:00`);
 
     if (Number.isNaN(parsed.getTime())) {
       return this.localizeDigits(value);
@@ -158,21 +161,31 @@ export class I18nService {
   }
 
   /**
-   * Legacy formatter for the modules still on mock data.
+   * Date and time, for records booked to a slot rather than a day.
    *
-   * Rentals, transport and inspections store display strings ("Jul 24"), so
-   * this parses that shape. Delete it when those modules move to the API and
-   * gain real dates — formatIsoDate is the replacement.
+   * A transport move's whole point is the hour it is due — the prototype wrote
+   * "ETA 16:30" as a label precisely because it mattered. Rendered in the
+   * viewer's own zone, since the API stores an absolute instant.
    */
-  formatDateLabel(value: string): string {
-    if (!this.isArabic()) {
-      return value;
+  formatIsoDateTime(value: string | null | undefined): string {
+    if (!value) {
+      return '—';
     }
 
-    const match = /^(Jul)\s+(\d{1,2})$/.exec(value);
+    const parsed = new Date(value);
 
-    return match ? `${this.localizeDigits(match[2])} يوليو` : this.localizeDigits(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return this.localizeDigits(value);
+    }
+
+    return new Intl.DateTimeFormat(this.numberLocale(), {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(parsed);
   }
+
 
   private localizeDigits(value: string): string {
     if (!this.isArabic()) {

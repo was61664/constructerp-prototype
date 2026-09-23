@@ -11,10 +11,11 @@ import type {
   RentalDto,
   RequestDto,
   SaveEquipmentRequest,
+  TransportMoveDto,
   VendorDto,
 } from './core/data/api-contracts';
 import { ErpGateway } from './core/data/erp-gateway';
-import { deriveRentalStatus } from './core/models';
+import { deriveRentalStatus, deriveTransportStatus } from './core/models';
 import { ErpStore } from './core/services/erp-store';
 import { I18nService } from './core/services/i18n';
 import { ExportService } from './core/services/export';
@@ -66,6 +67,64 @@ function fakeRental(id: string, dueOffset: number, bookedOffset: number | null):
     returnBookedOn: bookedOffset === null ? null : isoOffset(bookedOffset),
     returnedOn: null,
     amount: 1000,
+    notes: { en: '', ar: null },
+  });
+}
+
+type MoveFacts = Omit<TransportMoveDto, 'status' | 'isLate' | 'availableActions'>;
+
+/** Mirrors the API: status and permitted actions follow the timestamps. */
+function rederiveMove(row: MoveFacts): TransportMoveDto {
+  const actions: TransportMoveDto['availableActions'] = [];
+
+  if (!row.cancelledAt && !row.arrivedAt) {
+    if (!row.approvedAt) {
+      actions.push('approve');
+    } else if (!row.departedAt) {
+      actions.push('depart');
+    } else {
+      actions.push('arrive');
+    }
+
+    actions.push('cancel');
+  }
+
+  return {
+    ...row,
+    status: deriveTransportStatus(row.approvedAt, row.departedAt, row.arrivedAt, row.cancelledAt),
+    isLate:
+      !row.departedAt &&
+      !row.arrivedAt &&
+      !row.cancelledAt &&
+      row.scheduledFor < new Date().toISOString(),
+    availableActions: actions,
+  };
+}
+
+function fakeMove(
+  id: string,
+  options: { approved?: boolean; departed?: boolean; hoursOut?: number } = {},
+): TransportMoveDto {
+  const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+
+  return rederiveMove({
+    id,
+    code: `TRP-${id}`,
+    equipmentId: 'e1',
+    equipmentCode: 'EQ-104',
+    equipmentName: { en: 'Crawler Crane 80T', ar: 'ونش زاحف 80 طن' },
+    projectId: 'p1',
+    projectCode: 'PRJ-1001',
+    projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+    origin: { en: 'Yard A', ar: 'الساحة أ' },
+    destination: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+    kind: 'Delivery',
+    scheduledFor: at(options.hoursOut ?? 6),
+    approvedAt: options.approved ? at(-5) : null,
+    departedAt: options.departed ? at(-2) : null,
+    arrivedAt: null,
+    cancelledAt: null,
+    cost: 500,
     notes: { en: '', ar: null },
   });
 }
@@ -179,6 +238,42 @@ class FakeGateway {
   getRentals = () => Promise.resolve(this.rentals);
 
   getVendors = () => Promise.resolve(this.vendors);
+
+  /**
+   * Moves carry event timestamps, as the API does. Status and availableActions
+   * are derived from them here too, so a fixture cannot describe a state the
+   * real workflow would never produce.
+   */
+  moves: TransportMoveDto[] = [
+    fakeMove('m1'),
+    fakeMove('m2', { approved: true }),
+    fakeMove('m3', { approved: true, departed: true }),
+  ];
+
+  getTransportMoves = () => Promise.resolve(this.moves);
+
+  /** Applies the same guards the API applies, then re-derives. */
+  transitionTransportMove = (id: string, action: string) => {
+    const index = this.moves.findIndex((move) => move.id === id);
+    const move = this.moves[index];
+
+    if (!move.availableActions.includes(action as never)) {
+      return Promise.reject({ error: { error: `Cannot ${action} this move.` } });
+    }
+
+    const at = new Date().toISOString();
+    const updated = rederiveMove({
+      ...move,
+      approvedAt: action === 'approve' ? at : move.approvedAt,
+      departedAt: action === 'depart' ? at : move.departedAt,
+      arrivedAt: action === 'arrive' ? at : move.arrivedAt,
+      cancelledAt: action === 'cancel' ? at : move.cancelledAt,
+    });
+
+    this.moves = this.moves.map((item, i) => (i === index ? updated : item));
+
+    return Promise.resolve(updated);
+  };
 
   /** Records the return and re-derives, exactly as the API would. */
   returnRental = (id: string, returnedOn: string | null) => {
@@ -539,6 +634,110 @@ describe('Rentals', () => {
     TestBed.inject(I18nService).toggleLanguage();
 
     expect(store.rentals()[0].vendor).toBe('دلتا لتأجير المعدات الثقيلة');
+  });
+});
+
+describe('Transport', () => {
+  let gateway: FakeGateway;
+
+  beforeEach(async () => {
+    localStorage.clear();
+    gateway = new FakeGateway();
+    TestBed.configureTestingModule({
+      providers: [{ provide: ErpGateway, useValue: gateway }],
+    });
+
+    await TestBed.inject(ErpStore).load();
+  });
+
+  afterEach(() => localStorage.clear());
+
+  it('should read each status from the events recorded against the move', () => {
+    const moves = TestBed.inject(ErpStore).transportMoves();
+
+    for (const move of moves) {
+      const expected = move.cancelledAt
+        ? 'Cancelled'
+        : move.arrivedAt
+          ? 'Completed'
+          : move.departedAt
+            ? 'In Transit'
+            : move.approvedAt
+              ? 'Scheduled'
+              : 'Awaiting Approval';
+
+      expect(move.status).toBe(expected);
+    }
+
+    expect(moves.map((move) => move.status)).toEqual([
+      'Awaiting Approval',
+      'Scheduled',
+      'In Transit',
+    ]);
+  });
+
+  it('should not offer departure on a move that has not been approved', () => {
+    const store = TestBed.inject(ErpStore);
+    const pending = store.transportMoves().find((move) => move.status === 'Awaiting Approval');
+
+    // The gate, expressed as the absence of a button rather than a disabled one.
+    expect(pending!.availableActions).not.toContain('depart');
+    expect(pending!.availableActions).toContain('approve');
+  });
+
+  it('should reach In Transit only by recording a departure', async () => {
+    const store = TestBed.inject(ErpStore);
+    const move = store.transportMoves().find((m) => m.status === 'Awaiting Approval')!;
+
+    await store.transitionTransportMove(move.id, 'approve');
+
+    const approved = store.transportMoves().find((m) => m.id === move.id);
+    expect(approved!.status).toBe('Scheduled');
+    expect(approved!.availableActions).toContain('depart');
+
+    await store.transitionTransportMove(move.id, 'depart');
+
+    const departed = store.transportMoves().find((m) => m.id === move.id);
+    expect(departed!.status).toBe('In Transit');
+    expect(departed!.departedAt).not.toBeNull();
+  });
+
+  it('should refuse a transition the workflow does not allow', async () => {
+    const store = TestBed.inject(ErpStore);
+    const pending = store.transportMoves().find((m) => m.status === 'Awaiting Approval')!;
+
+    await expectAsync(store.transitionTransportMove(pending.id, 'depart')).toBeRejected();
+
+    // And nothing moved: a refused transition records no event.
+    expect(store.transportMoves().find((m) => m.id === pending.id)!.status).toBe(
+      'Awaiting Approval',
+    );
+  });
+
+  it('should flag a move that missed its slot without anyone marking it', async () => {
+    const store = TestBed.inject(ErpStore);
+
+    // Booked three hours ago, approved, never departed.
+    gateway.moves = [fakeMove('late1', { approved: true, hoursOut: -3 })];
+    await store.load();
+
+    const late = store.transportMoves()[0];
+    expect(late.isLate).toBeTrue();
+
+    // Recording the departure clears it — no "late" field was ever written.
+    await store.transitionTransportMove(late.id, 'depart');
+
+    expect(store.transportMoves()[0].isLate).toBeFalse();
+  });
+
+  it('should localise the route without refetching', () => {
+    const store = TestBed.inject(ErpStore);
+
+    expect(store.transportMoves()[0].origin).toBe('Yard A');
+
+    TestBed.inject(I18nService).toggleLanguage();
+
+    expect(store.transportMoves()[0].origin).toBe('الساحة أ');
   });
 });
 

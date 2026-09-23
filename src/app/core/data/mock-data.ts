@@ -1,6 +1,12 @@
-import { deriveRentalStatus } from '../models';
-import type { Inspection, TransportMove } from '../models';
-import type { EquipmentDto, ProjectDto, RentalDto, VendorDto } from './api-contracts';
+import { deriveRentalStatus, deriveTransportStatus } from '../models';
+import type { Inspection } from '../models';
+import type {
+  EquipmentDto,
+  ProjectDto,
+  RentalDto,
+  TransportMoveDto,
+  VendorDto,
+} from './api-contracts';
 
 /**
  * Fallback data used when no API is configured (the GitHub Pages build).
@@ -305,38 +311,111 @@ export const SEED_INSPECTIONS: readonly Inspection[] = [
 ];
 
 /** Previously hard-coded in the template; now seeded like every other entity. */
-export const SEED_TRANSPORT: readonly TransportMove[] = [
-  {
-    id: 'TRP-5001',
-    origin: 'Yard A',
-    destination: 'Downtown Tower',
-    kind: 'Delivery',
-    asset: 'Lowbed Trailer',
-    project: 'Downtown Tower',
-    cost: 2400,
-    status: 'In Transit',
-    schedule: 'ETA 16:30',
-  },
-  {
-    id: 'TRP-5002',
-    origin: 'Airport Expansion',
-    destination: 'Vendor Yard',
-    kind: 'Return move',
-    asset: 'Concrete Pump 42m',
-    project: 'Airport Expansion',
-    cost: 3150,
-    status: 'Scheduled',
-    schedule: 'Jul 24',
-  },
-  {
-    id: 'TRP-5003',
-    origin: 'Harbor Yard',
-    destination: 'Service Center',
-    kind: 'Inspection transfer',
-    asset: 'Excavator 36T',
-    project: 'Harbor Yard',
-    cost: 1100,
-    status: 'Awaiting Approval',
-    schedule: 'Jul 26',
-  },
-];
+/**
+ * Timestamps relative to load time, with the status derived from them.
+ *
+ * The prototype stored a status next to a "ETA 16:30" label that nothing could
+ * compare — so a move read "Scheduled" long after its slot had passed. Here
+ * each move carries the events that happened and the status follows.
+ */
+export const SEED_TRANSPORT: readonly TransportMoveDto[] = buildSeedTransport();
+
+function buildSeedTransport(): TransportMoveDto[] {
+  const hours = (n: number): string => new Date(Date.now() + n * 3_600_000).toISOString();
+
+  const rows = [
+    {
+      id: 'ffffffff-0000-4000-8000-000000005001',
+      code: 'TRP-5001',
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000331',
+      equipmentCode: 'EQ-331',
+      equipmentName: { en: 'Lowbed Trailer', ar: 'مقطورة لوبد' },
+      projectId: 'aaaaaaaa-0000-4000-8000-000000001001',
+      projectCode: 'PRJ-1001',
+      projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+      origin: { en: 'Yard A', ar: 'الساحة أ' },
+      destination: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+      kind: 'Delivery' as const,
+      scheduledFor: hours(3),
+      approvedAt: hours(-6),
+      departedAt: hours(-1),
+      arrivedAt: null,
+      cancelledAt: null,
+      cost: 2400,
+      notes: { en: '', ar: null },
+    },
+    {
+      id: 'ffffffff-0000-4000-8000-000000005002',
+      code: 'TRP-5002',
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000219',
+      equipmentCode: 'EQ-219',
+      equipmentName: { en: 'Concrete Pump 42m', ar: 'مضخة خرسانة 42 م' },
+      projectId: 'aaaaaaaa-0000-4000-8000-000000001018',
+      projectCode: 'PRJ-1018',
+      projectName: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+      origin: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+      destination: { en: 'Vendor Yard', ar: 'ساحة المورد' },
+      kind: 'Return move' as const,
+      scheduledFor: hours(48),
+      approvedAt: hours(-6),
+      departedAt: null,
+      arrivedAt: null,
+      cancelledAt: null,
+      cost: 3150,
+      notes: { en: '', ar: null },
+    },
+    {
+      // Unassigned: "Harbor Yard" was never a project record.
+      id: 'ffffffff-0000-4000-8000-000000005003',
+      code: 'TRP-5003',
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000512',
+      equipmentCode: 'EQ-512',
+      equipmentName: { en: 'Excavator 36T', ar: 'حفار 36 طن' },
+      projectId: null,
+      projectCode: null,
+      projectName: null,
+      origin: { en: 'Harbor Yard', ar: 'ساحة الميناء' },
+      destination: { en: 'Service Center', ar: 'مركز الخدمة' },
+      kind: 'Inspection transfer' as const,
+      scheduledFor: hours(96),
+      approvedAt: null,
+      departedAt: null,
+      arrivedAt: null,
+      cancelledAt: null,
+      cost: 1100,
+      notes: { en: '', ar: null },
+    },
+  ];
+
+  const now = new Date().toISOString();
+
+  return rows.map((row) => {
+    const status = deriveTransportStatus(
+      row.approvedAt,
+      row.departedAt,
+      row.arrivedAt,
+      row.cancelledAt,
+    );
+
+    const actions: TransportMoveDto['availableActions'] = [];
+
+    if (!row.approvedAt) {
+      actions.push('approve');
+    } else if (!row.departedAt) {
+      actions.push('depart');
+    } else if (!row.arrivedAt) {
+      actions.push('arrive');
+    }
+
+    if (!row.arrivedAt) {
+      actions.push('cancel');
+    }
+
+    return {
+      ...row,
+      status,
+      isLate: !row.departedAt && !row.arrivedAt && row.scheduledFor < now,
+      availableActions: actions,
+    };
+  });
+}
