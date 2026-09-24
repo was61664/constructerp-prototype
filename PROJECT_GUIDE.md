@@ -447,9 +447,24 @@ and were already fluid.
 
 # PART 1 — Project Guide
 
-This document describes **what the project is today**, **how to run it**, **what technology it should
-use going forward**, and a **TODO list broken down by department**. Each department section is
-self-contained so it can be handed to the person who owns that area.
+> **Read this first.** Part 1 below is the **original audit of the prototype**, written before any
+> of the backend existed. It is kept as the record of what was wrong and why, and much of it has
+> since been fixed.
+>
+> Two things to know before reading it:
+>
+> - **§5 is current.** It was rewritten to describe the backend as built. Everything else in Part 1
+>   describes the prototype as it was found.
+> - **Its `src/app/app.ts#L...` links are dead.** That file was a 3,256-line god component; it is now
+>   a 26-line shell and the app lives under `src/app/features/`, `core/` and `shared/`. The line
+>   numbers in those links refer to the original file and resolve to nothing.
+>
+> For current state, read Part 0 and §5. For the reasoning behind a specific decision, read the
+> department section here.
+
+This document describes **what the project was when audited**, **how to run it**, **what technology
+it should use going forward**, and a **TODO list broken down by department**. Each department section
+is self-contained so it can be handed to the person who owns that area.
 
 ---
 
@@ -460,10 +475,13 @@ the request → approval → receiving → inspection cycle that must complete b
 used, vendor rentals, transport moves, inspections with photo/video/signature evidence, and the
 resulting cost allocation per project.
 
-What exists right now is a **clickable UI prototype**, not a working system. It is a single Angular
-page with nine module screens, bilingual English/Arabic with full RTL, hard-coded mock data, and
-mock CRUD that saves to the browser's `localStorage`. There is no backend, no database, no
-authentication, and no real reporting.
+**When this was written**, what existed was a clickable UI prototype: a single Angular page with nine
+module screens, bilingual English/Arabic with full RTL, hard-coded mock data, and mock CRUD saving to
+the browser's `localStorage`. No backend, no database, no authentication, no real reporting.
+
+**Since then**, eight of the nine modules have been moved onto a .NET 10 / SQL Server backend in a
+separate repository, and the UI has been rebuilt into feature folders. Inspections is the only module
+still on in-memory data. Authentication and reporting remain unbuilt. See §5 for the current state.
 
 ### The nine modules (all present in the UI)
 
@@ -563,41 +581,56 @@ reload. The original mock data returns.
 
 ---
 
-## 5. Recommended target stack
+## 5. Backend stack (as built)
 
-This aligns with the .NET stack already in use on your other projects, so the team does not learn a
-second backend ecosystem.
+This section described a *recommendation* while the backend was still hypothetical. The backend now
+exists, so it records what was actually chosen and why the choices differ from the original advice.
 
-| Layer              | Recommendation                                                            | Why                                                                                                                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Database** | **PostgreSQL 16**                                                   | Strong JSONB for checklist/inspection payloads, excellent date/interval handling for rental periods, free, easy to host. Use**SQL Server** instead only if the client already runs a Microsoft stack and licences exist. |
-| ORM                | EF Core 9 with code-first migrations                                      | Schema versioned in git                                                                                                                                                                                                        |
-| Backend            | ASP.NET Core 9 Web API, REST + JSON                                       | Matches existing team skill                                                                                                                                                                                                    |
-| Auth               | ASP.NET Core Identity + JWT, or Keycloak if SSO is needed                 | Roles: Admin, Project Manager, Site Engineer, Inspector, Procurement, Viewer                                                                                                                                                   |
-| File storage       | S3-compatible (AWS S3 or self-hosted MinIO)                               | Inspection photos/videos must never sit in the database                                                                                                                                                                        |
-| Background jobs    | Hangfire (or MassTransit + RabbitMQ if events are already used elsewhere) | Overdue-rental alerts, inspection reminders                                                                                                                                                                                    |
-| Cache              | Redis (only when needed)                                                  | Dashboard aggregates                                                                                                                                                                                                           |
-| Reporting          | SQL views + QuestPDF / ClosedXML for export                               | Replaces the static report cards                                                                                                                                                                                               |
-| Frontend           | Keep Angular 20                                                           | Already written; needs restructuring, not replacing                                                                                                                                                                            |
-| Frontend state     | Angular signals + a service layer per domain                              | Continue the pattern already started                                                                                                                                                                                           |
-| API contract       | OpenAPI/Swagger → generate TS client                                     | Stops DTO drift                                                                                                                                                                                                                |
-| Local dev          | Docker Compose: Postgres + MinIO + API                                    | One-command environment                                                                                                                                                                                                        |
+**The backend is a separate repository:** `constructerp-api`, not a folder inside this one. Nothing
+in this repo builds or deploys it.
 
-### Suggested core tables
+| Layer | Built with | Why |
+| --- | --- | --- |
+| **Database** | **SQL Server 2022** | Chosen over the originally recommended PostgreSQL: it was already installed locally and matches the Microsoft stack in use elsewhere. The JSONB argument for Postgres never applied — checklists became real `request_checks` rows, not a JSON payload. |
+| ORM | EF Core 10, code-first migrations | Schema versioned in git; three migrations so far. |
+| Backend | .NET 10 minimal APIs, REST + JSON | `ConstructErp.Api` → `Infrastructure` → `Application` → `Domain`. |
+| Money | `decimal(18,3)` everywhere | KWD has three decimal places. Enforced by a convention in `ConfigureConventions` and guarded by a schema test that queries `INFORMATION_SCHEMA`. |
+| Text | `NVARCHAR` everywhere | `VARCHAR` under SQL Server's default collation destroys Arabic. Also guarded by a schema test asserting zero `varchar`/`char`/`text` columns. |
+| Keys | GUID v7 primary keys, real foreign keys | The prototype joined equipment to projects on the project *name*. |
+| Soft delete | `deleted_at` + global query filter | Rows are hidden from every query, never destroyed. |
+| Tests | xUnit + `WebApplicationFactory` against **real SQL Server** | A per-run database, not an in-memory provider — the schema guarantees above are only meaningful against the real engine. |
+| CI | GitHub Actions with a SQL Server service container | |
+| Frontend | Angular 20, unchanged | Restructured, not replaced. |
+| Local dev | SQL Server + `dotnet run`. **No Docker.** | Both were already installed; a container added a moving part without adding anything. |
 
-```
-projects, equipment, equipment_types, equipment_requests, request_checks,
-receiving_checks, rentals, vendors, transport_moves, inspections,
-inspection_media, cost_entries, users, roles, audit_log
-```
+**Still to choose:** file storage for inspection media (S3, Azure Blob, or self-hosted MinIO), auth
+and roles, and a background-job runner for overdue alerts. None of these are built.
 
-Two decisions to make before the first migration:
+### Module status
 
-1. **Money storage.** Use `numeric(18,3)` — KWD has **three** decimal places, not two. A `decimal(18,2)`
-   column will silently round every fils. This is the most expensive mistake to fix later.
-2. **Dates.** The prototype stores dates as display strings (`'Jul 20'`) and
-   [formatDateLabel](src/app/app.ts#L1095-L1107) hard-codes a `Jul` regex. The database must use real
-   `date` / `timestamptz` columns; formatting belongs in the UI only.
+| Module | Backed by | Notes |
+| --- | --- | --- |
+| Projects | SQL Server | Spend totals summed from cost entries, never stored. |
+| Equipment | SQL Server | Real FK to projects. |
+| Requests | SQL Server | Workflow enforced by `RequestWorkflow`. |
+| Costs | SQL Server | Entries listed, added and removed from the Costs screen. |
+| Rentals + Vendors | SQL Server | Status derived from dates by `RentalSchedule`. |
+| Transport | SQL Server | Status derived from event timestamps by `TransportSchedule`. |
+| **Inspections** | **In-memory seed** | The last module not migrated. Blocked on the file-storage decision above. |
+
+### The pattern worth keeping
+
+Three modules had a **stored status that somebody typed**, and all three were wrong in the same way —
+the record only changed when a person remembered to change it. Each was replaced by storing the
+*facts* and deriving the status:
+
+- A rental is `Overdue` because its return date passed and no return was recorded.
+- A move is `In Transit` because a departure was recorded against it.
+- A request is `Ready to Use` because approval, receipt and inspection all happened.
+
+In each case the status column was **removed from the schema**, and a test asserts it never comes
+back. If a fourth module grows a status field, this is the question to ask first: is it a fact, or
+somebody's opinion about facts recorded elsewhere?
 
 ---
 
@@ -657,16 +690,16 @@ arrays rather than signals.
 
 **TODO**
 
-- [ ] Stand up PostgreSQL 16 in Docker Compose for local development.
-- [ ] Model the schema; enforce foreign keys (`equipment.project_id`, `request.equipment_id`, `inspection.equipment_id`, `rental.vendor_id`).
-- [ ] Use `numeric(18,3)` for all money columns (KWD = 3 decimals).
-- [ ] Use real `date` / `timestamptz` columns — never display strings.
-- [ ] Add `created_at`, `updated_at`, `created_by`, `updated_by` to every table.
-- [ ] Soft delete (`deleted_at`) instead of hard delete — the prototype's delete is unrecoverable.
+- [x] Stand up SQL Server 2022 locally (no Docker — it was already installed).
+- [x] Model the schema; enforce foreign keys. `inspection.equipment_id` remains, with inspections.
+- [x] Use `decimal(18,3)` for all money columns (KWD = 3 decimals). Guarded by a schema test.
+- [x] Use real `date` / `datetimeoffset` columns — never display strings.
+- [x] Add `created_at`, `updated_at`, `created_by`, `updated_by` to every table.
+- [x] Soft delete (`deleted_at`) with a global query filter, instead of hard delete.
 - [ ] `audit_log` table capturing every status transition on requests, equipment, and inspections. Construction disputes are settled with audit trails.
-- [ ] EF Core migrations from day one; never edit the schema by hand.
-- [ ] Seed script that loads the current prototype mock data so demos keep working.
-- [ ] Indexes on `equipment.status`, `equipment.project_id`, `requests.stage`, `rentals.return_date` (the overdue query).
+- [x] EF Core migrations from day one; never edit the schema by hand.
+- [x] Runtime seeder loading the prototype's data. `HasData` cannot seed complex properties (dotnet/efcore#31254), and every name here is a `LocalizedText`.
+- [x] Indexes on `equipment.status`, `equipment.project_id`, `requests.status`, `rentals (returned_on, expected_return_on)` (the overdue query) and `transport_moves (departed_at, scheduled_for)` (the running-late query).
 - [ ] Backup and restore procedure, tested at least once before go-live.
 
 ---
@@ -859,7 +892,7 @@ push to `main`. No environments, no secrets, no backend to deploy.
 
 - [ ] Environments: dev, staging, production, with per-environment configuration.
 - [ ] Frontend environment files for the API base URL — nothing is configurable today.
-- [ ] Docker Compose for local development: API + Postgres + MinIO.
+- [ ] Object storage for inspection media (S3, Azure Blob or MinIO) — still undecided.
 - [ ] Backend build/test/deploy pipeline.
 - [ ] Automated database migrations on deploy, with a rollback plan.
 - [ ] A staging URL for client review, separate from the public Pages demo.
@@ -922,7 +955,7 @@ dictionary, no user manual.
 
 1. Restructure the frontend: routes, feature components, services (§6.1). Do this **before** adding
    features — every week of delay makes the split harder.
-2. Stand up the backend skeleton, PostgreSQL, and migrations (§6.2, §6.3).
+2. ~~Stand up the backend skeleton, database, and migrations~~ — done; see §5.
 3. Build auth and roles (§6.12). Retrofitting permissions is far more expensive than building them in.
 
 **Phase 2 — Core modules (4–6 weeks)**
@@ -977,9 +1010,9 @@ Small, specific, and worth fixing whether or not the rewrite happens.
 | **What is it?**     | Construction equipment ERP — UI prototype stage                                              |
 | **Language**        | TypeScript 5.9 (frontend); C# recommended for the backend                                     |
 | **Framework**       | Angular 20.3, standalone components + signals                                                 |
-| **Database**        | **None today.** PostgreSQL 16 recommended (SQL Server if the client is Microsoft-based) |
+| **Database**        | **SQL Server 2022**, EF Core 10, three migrations applied |
 | **Backend**         | None today. ASP.NET Core 9 Web API recommended                                                |
-| **Storage**         | `localStorage`. Move to Postgres + S3/MinIO for media                                       |
+| **Storage**         | SQL Server for all modules but Inspections. Media storage still undecided |
 | **Auth**            | None. Must be built before any real use                                                       |
 | **Tools**           | Angular CLI, Lucide icons, SCSS, Karma/Jasmine, GitHub Actions, GitHub Pages                  |
 | **Level**           | **1 of 5** — clickable prototype                                                       |
