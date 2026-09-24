@@ -42,7 +42,10 @@ export class ProjectFormDialog {
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: [this.data.project.name, Validators.required],
-    code: [this.data.project.code, Validators.required],
+    // Required only when editing. On create the value is blank and the API
+    // allocates the code, because only the server can see the soft-deleted
+    // rows whose codes are still held by the unique index.
+    code: [this.data.project.code, this.data.mode === 'create' ? [] : Validators.required],
     client: [this.data.project.client],
     manager: [this.data.project.manager],
     location: [this.data.project.location],

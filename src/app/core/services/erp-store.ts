@@ -53,6 +53,17 @@ import { I18nService } from './i18n';
  * not exist yet. The backend is being migrated one module at a time and this
  * class is where the halves meet.
  */
+/**
+ * Sent in place of a code when creating a record: the API allocates one.
+ *
+ * The client used to guess, by taking the highest code it could see and
+ * adding one. Soft-deleted rows are hidden from it but still hold their code
+ * in the unique index, so deleting REQ-0001 and creating a new request
+ * guessed REQ-0001 again — which passed every check the browser could make
+ * and then failed at the database as a 500.
+ */
+const SERVER_ASSIGNED_CODE = '';
+
 @Injectable({ providedIn: 'root' })
 export class ErpStore {
   private readonly gateway = inject(ErpGateway);
@@ -407,10 +418,7 @@ export class ErpStore {
   }
 
   nextProjectCode(): string {
-    return `PRJ-${this.nextSequence(
-      this.projects().map((project) => project.code),
-      'PRJ-',
-    )}`;
+    return SERVER_ASSIGNED_CODE;
   }
 
   // --- Equipment ------------------------------------------------------------
@@ -444,10 +452,7 @@ export class ErpStore {
   }
 
   nextEquipmentCode(): string {
-    return `EQ-${this.nextSequence(
-      this.equipment().map((item) => item.code),
-      'EQ-',
-    )}`;
+    return SERVER_ASSIGNED_CODE;
   }
 
   // --- Requests -------------------------------------------------------------
@@ -500,10 +505,7 @@ export class ErpStore {
   }
 
   nextRequestCode(): string {
-    return `REQ-${this.nextSequence(
-      this.requests().map((request) => request.code),
-      'REQ-',
-    )}`;
+    return SERVER_ASSIGNED_CODE;
   }
 
   private upsert(request: RequestDto): void {
@@ -702,14 +704,5 @@ export class ErpStore {
       dailyCost: item.dailyCost,
       nextAction: this.toLocalized(item.nextAction, existing?.nextAction),
     };
-  }
-
-  private nextSequence(values: readonly string[], prefix: string): string {
-    const highest = values
-      .map((value) => Number(value.replace(prefix, '')))
-      .filter((value) => Number.isFinite(value))
-      .reduce((max, value) => Math.max(max, value), 0);
-
-    return String(highest + 1).padStart(4, '0');
   }
 }

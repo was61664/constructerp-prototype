@@ -1214,11 +1214,17 @@ describe('ErpStore', () => {
     expect(store.totals().dailySpend).toBe(1250);
   });
 
-  it('should allocate sequential codes per entity', () => {
+  it('should leave code allocation to the API', () => {
     const store = TestBed.inject(ErpStore);
 
-    expect(store.nextProjectCode()).toMatch(/^PRJ-\d{4}$/);
-    expect(store.nextEquipmentCode()).toMatch(/^EQ-\d{4}$/);
-    expect(store.nextRequestCode()).toMatch(/^REQ-\d{4}$/);
+    // These used to return a guessed code, taken from the highest the browser
+    // could see. Soft-deleted rows are hidden from it but still hold their
+    // code in the unique index, so deleting REQ-0001 and creating a request
+    // reissued REQ-0001 and the insert failed at the database as a 500.
+    // Blank means "server, you pick" — it is the only party that can see
+    // every code in use.
+    expect(store.nextProjectCode()).toBe('');
+    expect(store.nextEquipmentCode()).toBe('');
+    expect(store.nextRequestCode()).toBe('');
   });
 });
