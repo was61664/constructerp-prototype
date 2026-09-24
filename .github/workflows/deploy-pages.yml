@@ -49,6 +49,15 @@ jobs:
       - name: Build for GitHub Pages
         run: npm run build -- --base-href /constructerp-prototype/
 
+      # GitHub Pages is a static file server with no rewrite rule, so a deep
+      # link like /requests looks for a file that does not exist and serves
+      # the 404 page. Pages serves 404.html for any unmatched path, so making
+      # it a copy of index.html hands control to the Angular router instead —
+      # which is what makes refreshing on a route, or opening a shared link,
+      # work at all.
+      - name: Serve deep links through the router
+        run: cp dist/constructerp-prototype/browser/index.html dist/constructerp-prototype/browser/404.html
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
