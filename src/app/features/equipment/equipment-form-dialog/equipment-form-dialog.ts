@@ -62,7 +62,10 @@ export class EquipmentFormDialog {
   protected readonly statuses = EQUIPMENT_STATUSES;
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    code: [this.data.equipment.code, Validators.required],
+    // Required only when editing. On create the value is blank and the API
+    // allocates the code, because only the server can see the soft-deleted
+    // rows whose codes are still held by the unique index.
+    code: [this.data.equipment.code, this.data.mode === 'create' ? [] : Validators.required],
     name: [this.data.equipment.name, Validators.required],
     equipmentTypeId: [this.data.equipment.equipmentTypeId, Validators.required],
     ownership: [this.data.equipment.ownership],

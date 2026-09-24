@@ -109,9 +109,13 @@ export class Reports {
         { header: 'Vendor', value: (rental) => rental.vendor },
         { header: 'Asset', value: (rental) => rental.asset },
         { header: 'Project', value: (rental) => rental.project },
-        { header: 'Return date', value: (rental) => rental.returnDate },
+        { header: 'Due back', value: (rental) => rental.returnDate },
+        { header: 'Returned on', value: (rental) => rental.returnedOn ?? '' },
         { header: 'Amount (KWD)', value: (rental) => rental.amount },
+        // Derived by the API from the two dates above, so the export cannot
+        // disagree with them.
         { header: 'Status', value: (rental) => rental.status },
+        { header: 'Days overdue', value: (rental) => rental.daysOverdue },
       ],
       this.store.rentals(),
     );

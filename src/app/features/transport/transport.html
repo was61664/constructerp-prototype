@@ -2,8 +2,34 @@
   <app-page-header
     [eyebrow]="i18n.t('transportation')"
     [title]="i18n.t('transportPlanning')"
-    [subtitle]="i18n.t('transportNote')"
+    [subtitle]="i18n.t('moveStatusIsDerived')"
   />
+
+  <section class="grid grid-thirds" [attr.aria-label]="i18n.t('transportation')">
+    <app-kpi-card
+      [label]="i18n.t('openMoves')"
+      [value]="i18n.formatInteger(openCount())"
+      [note]="i18n.t('transportPlanning')"
+    />
+    <app-kpi-card
+      [label]="i18n.t('transportSpend')"
+      [value]="i18n.formatMoney(totalCost())"
+      [note]="i18n.t('transportNote')"
+    />
+    <app-kpi-card
+      [label]="i18n.t('lateMoves')"
+      [value]="i18n.formatInteger(lateCount())"
+      [note]="i18n.t('moveStatusIsDerived')"
+    />
+  </section>
+
+  @if (actionError(); as error) {
+    <!--
+      A refused transition is information, not a crash: the server explains why
+      the action is not allowed yet, so show that verbatim.
+    -->
+    <p class="action-error" role="alert">{{ error }}</p>
+  }
 
   <div class="grid grid-halves transport-grid">
     <app-section-card
@@ -28,6 +54,22 @@
                   [status]="move.status"
                   [label]="i18n.text(move.status)"
                 />
+                @if (move.availableActions.length) {
+                  <div cardActions class="move-actions">
+                    @for (action of move.availableActions; track action) {
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        [disabled]="busy.any"
+                        [attr.aria-busy]="busy.is(action + ':' + move.id)"
+                        (click)="run(move, action)"
+                      >
+                        <app-busy-icon [busy]="busy.is(action + ':' + move.id)" />
+                        <span>{{ actionLabel(action) }}</span>
+                      </button>
+                    }
+                  </div>
+                }
               </app-record-card>
             </li>
           }
@@ -59,7 +101,7 @@
 
             <ng-container matColumnDef="project">
               <th mat-header-cell *matHeaderCellDef>{{ i18n.t('project') }}</th>
-              <td mat-cell *matCellDef="let move">{{ i18n.text(move.project) }}</td>
+              <td mat-cell *matCellDef="let move">{{ i18n.text(move.project) || '—' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="cost">
@@ -71,13 +113,49 @@
 
             <ng-container matColumnDef="schedule">
               <th mat-header-cell *matHeaderCellDef>{{ i18n.t('schedule') }}</th>
-              <td mat-cell *matCellDef="let move">{{ i18n.formatDateLabel(move.schedule) }}</td>
+              <td mat-cell *matCellDef="let move">
+                <span>{{ i18n.formatIsoDateTime(move.schedule) }}</span>
+                <!--
+                  The booked slot is a real timestamp now, so a move that
+                  missed it can say so instead of looking identical to one
+                  still on time.
+                -->
+                @if (move.isLate) {
+                  <span class="muted late">{{ i18n.t('runningLate') }}</span>
+                }
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef>{{ i18n.t('status') }}</th>
               <td mat-cell *matCellDef="let move">
                 <app-status-chip [status]="move.status" [label]="i18n.text(move.status)" />
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let move">
+                <!--
+                  Driven by availableActions from the API, so the buttons shown
+                  are exactly the transitions that would succeed. Nothing here
+                  sets a status: a move is In Transit because a departure was
+                  recorded against it.
+                -->
+                <div class="move-actions">
+                  @for (action of move.availableActions; track action) {
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="busy.any"
+                      [attr.aria-busy]="busy.is(action + ':' + move.id)"
+                      (click)="run(move, action)"
+                    >
+                      <app-busy-icon [busy]="busy.is(action + ':' + move.id)" />
+                      <span>{{ actionLabel(action) }}</span>
+                    </button>
+                  }
+                </div>
               </td>
             </ng-container>
 

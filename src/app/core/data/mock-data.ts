@@ -1,5 +1,12 @@
-import type { Inspection, Rental, TransportMove } from '../models';
-import type { EquipmentDto, ProjectDto } from './api-contracts';
+import { deriveRentalStatus, deriveTransportStatus } from '../models';
+import type { Inspection } from '../models';
+import type {
+  EquipmentDto,
+  ProjectDto,
+  RentalDto,
+  TransportMoveDto,
+  VendorDto,
+} from './api-contracts';
 
 /**
  * Fallback data used when no API is configured (the GitHub Pages build).
@@ -139,34 +146,145 @@ export const SEED_EQUIPMENT: readonly EquipmentDto[] = [
     dailyCost: 690,
     nextAction: { en: 'Operator checklist missing', ar: 'قائمة فحص المشغل غير مكتملة' },
   },
+  {
+    id: 'bbbbbbbb-0000-4000-8000-000000000577',
+    code: 'EQ-577',
+    name: { en: 'Mobile Crane 120T', ar: 'ونش متحرك 120 طن' },
+    equipmentTypeId: 'cccccccc-0000-4000-8000-000000000001',
+    equipmentType: { en: 'Lifting', ar: 'رفع' },
+    ownership: 'External Rental',
+    // Hired from Prime Lift. The prototype had a rental for this crane but no
+    // fleet record, so the hire referred to a machine that did not exist.
+    projectId: 'aaaaaaaa-0000-4000-8000-000000001001',
+    projectCode: 'PRJ-1001',
+    projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+    status: 'Working',
+    utilization: 81,
+    dailyCost: 1480,
+    nextAction: { en: 'Hire runs to month end', ar: 'الإيجار حتى نهاية الشهر' },
+  },
 ];
 
-export const SEED_RENTALS: readonly Rental[] = [
+export const SEED_VENDORS: readonly VendorDto[] = [
   {
-    vendor: 'Delta Heavy Rentals',
-    asset: 'Concrete Pump 42m',
-    project: 'Airport Expansion',
-    returnDate: 'Jul 24',
-    amount: 9800,
-    status: 'Return Scheduled',
+    id: 'dddddddd-0000-4000-8000-000000000001',
+    code: 'VEN-001',
+    name: { en: 'Delta Heavy Rentals', ar: 'دلتا لتأجير المعدات الثقيلة' },
+    contactName: 'K. Mansour',
+    phone: '+965 2222 1180',
+    email: 'hire@deltaheavy.com.kw',
+    rentalCount: 1,
+    openRentalCount: 1,
+    totalSpend: 9800,
   },
   {
-    vendor: 'Prime Lift Services',
-    asset: 'Mobile Crane 120T',
-    project: 'Downtown Tower',
-    returnDate: 'Jul 21',
-    amount: 14600,
-    status: 'Active',
+    id: 'dddddddd-0000-4000-8000-000000000002',
+    code: 'VEN-002',
+    name: { en: 'Prime Lift Services', ar: 'برايم لخدمات الرفع' },
+    contactName: 'R. Aziz',
+    phone: '+965 2222 4471',
+    email: 'bookings@primelift.com.kw',
+    rentalCount: 1,
+    openRentalCount: 1,
+    totalSpend: 14600,
   },
   {
-    vendor: 'SitePower Rental',
-    asset: 'Tower Light Set',
-    project: 'Metro Station Works',
-    returnDate: 'Jul 15',
-    amount: 1920,
-    status: 'Overdue',
+    id: 'dddddddd-0000-4000-8000-000000000003',
+    code: 'VEN-003',
+    name: { en: 'SitePower Rental', ar: 'سايت باور للتأجير' },
+    contactName: 'H. Darwish',
+    phone: '+965 2222 9034',
+    email: 'support@sitepower.com.kw',
+    rentalCount: 1,
+    openRentalCount: 1,
+    totalSpend: 1920,
   },
 ];
+
+/**
+ * Dates are relative to whenever the build is opened, not fixed.
+ *
+ * The old seed carried "Jul 24" beside a hand-written status, so within weeks
+ * every demo row read "Active" next to a return date months past — the exact
+ * contradiction the API change removed. Offsets keep one rental of each status
+ * on screen whenever the page is loaded, and the status below is derived from
+ * the dates rather than typed beside them.
+ */
+export const SEED_RENTALS: readonly RentalDto[] = buildSeedRentals();
+
+function buildSeedRentals(): RentalDto[] {
+  const today = new Date();
+  const iso = (offsetDays: number): string =>
+    new Date(today.getTime() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+
+  const rows = [
+    {
+      id: 'eeeeeeee-0000-4000-8000-000000002007',
+      code: 'RNT-2007',
+      vendorId: 'dddddddd-0000-4000-8000-000000000001',
+      vendorName: { en: 'Delta Heavy Rentals', ar: 'دلتا لتأجير المعدات الثقيلة' },
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000219',
+      equipmentCode: 'EQ-219',
+      equipmentName: { en: 'Concrete Pump 42m', ar: 'مضخة خرسانة 42 م' },
+      projectId: 'aaaaaaaa-0000-4000-8000-000000001018',
+      projectCode: 'PRJ-1018',
+      projectName: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+      startedOn: iso(-34),
+      expectedReturnOn: iso(12),
+      returnBookedOn: iso(-2),
+      returnedOn: null,
+      amount: 9800,
+      notes: { en: '', ar: null },
+    },
+    {
+      id: 'eeeeeeee-0000-4000-8000-000000002011',
+      code: 'RNT-2011',
+      vendorId: 'dddddddd-0000-4000-8000-000000000002',
+      vendorName: { en: 'Prime Lift Services', ar: 'برايم لخدمات الرفع' },
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000577',
+      equipmentCode: 'EQ-577',
+      equipmentName: { en: 'Mobile Crane 120T', ar: 'ونش متحرك 120 طن' },
+      projectId: 'aaaaaaaa-0000-4000-8000-000000001001',
+      projectCode: 'PRJ-1001',
+      projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+      startedOn: iso(-21),
+      expectedReturnOn: iso(26),
+      returnBookedOn: null,
+      returnedOn: null,
+      amount: 14600,
+      notes: { en: '', ar: null },
+    },
+    {
+      id: 'eeeeeeee-0000-4000-8000-000000002014',
+      code: 'RNT-2014',
+      vendorId: 'dddddddd-0000-4000-8000-000000000003',
+      vendorName: { en: 'SitePower Rental', ar: 'سايت باور للتأجير' },
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000448',
+      equipmentCode: 'EQ-448',
+      equipmentName: { en: 'Tower Light Set', ar: 'وحدة إضاءة برجية' },
+      projectId: 'aaaaaaaa-0000-4000-8000-000000001032',
+      projectCode: 'PRJ-1032',
+      projectName: { en: 'Metro Station Works', ar: 'أعمال محطة المترو' },
+      startedOn: iso(-48),
+      expectedReturnOn: iso(-7),
+      returnBookedOn: null,
+      returnedOn: null,
+      amount: 1920,
+      notes: { en: '', ar: null },
+    },
+  ];
+
+  const now = iso(0);
+
+  return rows.map((row) => ({
+    ...row,
+    status: deriveRentalStatus(row.expectedReturnOn, row.returnBookedOn, row.returnedOn, now),
+    daysOverdue:
+      row.expectedReturnOn < now && !row.returnedOn
+        ? Math.round((Date.parse(now) - Date.parse(row.expectedReturnOn)) / 86_400_000)
+        : 0,
+  }));
+}
 
 export const SEED_INSPECTIONS: readonly Inspection[] = [
   {
@@ -193,38 +311,111 @@ export const SEED_INSPECTIONS: readonly Inspection[] = [
 ];
 
 /** Previously hard-coded in the template; now seeded like every other entity. */
-export const SEED_TRANSPORT: readonly TransportMove[] = [
-  {
-    id: 'TRP-5001',
-    origin: 'Yard A',
-    destination: 'Downtown Tower',
-    kind: 'Delivery',
-    asset: 'Lowbed Trailer',
-    project: 'Downtown Tower',
-    cost: 2400,
-    status: 'In Transit',
-    schedule: 'ETA 16:30',
-  },
-  {
-    id: 'TRP-5002',
-    origin: 'Airport Expansion',
-    destination: 'Vendor Yard',
-    kind: 'Return move',
-    asset: 'Concrete Pump 42m',
-    project: 'Airport Expansion',
-    cost: 3150,
-    status: 'Scheduled',
-    schedule: 'Jul 24',
-  },
-  {
-    id: 'TRP-5003',
-    origin: 'Harbor Yard',
-    destination: 'Service Center',
-    kind: 'Inspection transfer',
-    asset: 'Excavator 36T',
-    project: 'Harbor Yard',
-    cost: 1100,
-    status: 'Awaiting Approval',
-    schedule: 'Jul 26',
-  },
-];
+/**
+ * Timestamps relative to load time, with the status derived from them.
+ *
+ * The prototype stored a status next to a "ETA 16:30" label that nothing could
+ * compare — so a move read "Scheduled" long after its slot had passed. Here
+ * each move carries the events that happened and the status follows.
+ */
+export const SEED_TRANSPORT: readonly TransportMoveDto[] = buildSeedTransport();
+
+function buildSeedTransport(): TransportMoveDto[] {
+  const hours = (n: number): string => new Date(Date.now() + n * 3_600_000).toISOString();
+
+  const rows = [
+    {
+      id: 'ffffffff-0000-4000-8000-000000005001',
+      code: 'TRP-5001',
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000331',
+      equipmentCode: 'EQ-331',
+      equipmentName: { en: 'Lowbed Trailer', ar: 'مقطورة لوبد' },
+      projectId: 'aaaaaaaa-0000-4000-8000-000000001001',
+      projectCode: 'PRJ-1001',
+      projectName: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+      origin: { en: 'Yard A', ar: 'الساحة أ' },
+      destination: { en: 'Downtown Tower', ar: 'برج وسط المدينة' },
+      kind: 'Delivery' as const,
+      scheduledFor: hours(3),
+      approvedAt: hours(-6),
+      departedAt: hours(-1),
+      arrivedAt: null,
+      cancelledAt: null,
+      cost: 2400,
+      notes: { en: '', ar: null },
+    },
+    {
+      id: 'ffffffff-0000-4000-8000-000000005002',
+      code: 'TRP-5002',
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000219',
+      equipmentCode: 'EQ-219',
+      equipmentName: { en: 'Concrete Pump 42m', ar: 'مضخة خرسانة 42 م' },
+      projectId: 'aaaaaaaa-0000-4000-8000-000000001018',
+      projectCode: 'PRJ-1018',
+      projectName: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+      origin: { en: 'Airport Expansion', ar: 'توسعة المطار' },
+      destination: { en: 'Vendor Yard', ar: 'ساحة المورد' },
+      kind: 'Return move' as const,
+      scheduledFor: hours(48),
+      approvedAt: hours(-6),
+      departedAt: null,
+      arrivedAt: null,
+      cancelledAt: null,
+      cost: 3150,
+      notes: { en: '', ar: null },
+    },
+    {
+      // Unassigned: "Harbor Yard" was never a project record.
+      id: 'ffffffff-0000-4000-8000-000000005003',
+      code: 'TRP-5003',
+      equipmentId: 'bbbbbbbb-0000-4000-8000-000000000512',
+      equipmentCode: 'EQ-512',
+      equipmentName: { en: 'Excavator 36T', ar: 'حفار 36 طن' },
+      projectId: null,
+      projectCode: null,
+      projectName: null,
+      origin: { en: 'Harbor Yard', ar: 'ساحة الميناء' },
+      destination: { en: 'Service Center', ar: 'مركز الخدمة' },
+      kind: 'Inspection transfer' as const,
+      scheduledFor: hours(96),
+      approvedAt: null,
+      departedAt: null,
+      arrivedAt: null,
+      cancelledAt: null,
+      cost: 1100,
+      notes: { en: '', ar: null },
+    },
+  ];
+
+  const now = new Date().toISOString();
+
+  return rows.map((row) => {
+    const status = deriveTransportStatus(
+      row.approvedAt,
+      row.departedAt,
+      row.arrivedAt,
+      row.cancelledAt,
+    );
+
+    const actions: TransportMoveDto['availableActions'] = [];
+
+    if (!row.approvedAt) {
+      actions.push('approve');
+    } else if (!row.departedAt) {
+      actions.push('depart');
+    } else if (!row.arrivedAt) {
+      actions.push('arrive');
+    }
+
+    if (!row.arrivedAt) {
+      actions.push('cancel');
+    }
+
+    return {
+      ...row,
+      status,
+      isLate: !row.departedAt && !row.arrivedAt && row.scheduledFor < now,
+      availableActions: actions,
+    };
+  });
+}

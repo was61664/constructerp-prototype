@@ -136,7 +136,7 @@ export class SearchService {
       )
       .slice(0, MAX_PER_GROUP)
       .map((rental) => ({
-        key: `rentals:${rental.vendor}:${rental.asset}`,
+        key: `rentals:${rental.id}`,
         module: 'rentals' as const,
         route: '/rentals',
         title: this.i18n.text(rental.vendor),
@@ -169,8 +169,10 @@ export class SearchService {
     return this.store
       .transportMoves()
       .filter((move) =>
+        // `code`, not `id`: the id is a GUID now, and nobody searches for one.
+        // TRP-5001 is what is printed on the paperwork.
         this.matches(term, [
-          move.id,
+          move.code,
           move.origin,
           move.destination,
           move.asset,

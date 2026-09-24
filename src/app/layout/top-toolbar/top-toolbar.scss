@@ -64,3 +64,22 @@ button svg {
     padding-inline: $space-sm;
   }
 }
+
+// Identity block at the top of the account menu: who you are, and whose data
+// you are looking at.
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: $space-sm $space-md;
+  border-bottom: $border;
+
+  strong {
+    font-size: 13px;
+  }
+
+  .muted {
+    font-size: 12px;
+    color: $text-hint;
+  }
+}

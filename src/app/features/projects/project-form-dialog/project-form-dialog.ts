@@ -42,15 +42,17 @@ export class ProjectFormDialog {
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: [this.data.project.name, Validators.required],
-    code: [this.data.project.code, Validators.required],
+    // Required only when editing. On create the value is blank and the API
+    // allocates the code, because only the server can see the soft-deleted
+    // rows whose codes are still held by the unique index.
+    code: [this.data.project.code, this.data.mode === 'create' ? [] : Validators.required],
     client: [this.data.project.client],
     manager: [this.data.project.manager],
     location: [this.data.project.location],
     status: [this.data.project.status],
     budget: [this.data.project.budget, [Validators.required, Validators.min(0)]],
-    equipmentSpend: [this.data.project.equipmentSpend, Validators.min(0)],
-    transportSpend: [this.data.project.transportSpend, Validators.min(0)],
-    extraSpend: [this.data.project.extraSpend, Validators.min(0)],
+    // No spend controls: the API sums those from cost entries and refuses them
+    // on a project save, so collecting them here only looked like it worked.
     progress: [this.data.project.progress, [Validators.min(0), Validators.max(100)]],
   });
 

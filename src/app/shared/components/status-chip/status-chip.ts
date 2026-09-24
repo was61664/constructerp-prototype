@@ -18,6 +18,7 @@ const STATUS_TONES: Readonly<Record<string, StatusTone>> = {
   // Rentals
   Active: 'success',
   Overdue: 'danger',
+  Returned: 'neutral',
   // Projects
   'At Risk': 'warn',
   Closing: 'neutral',
@@ -35,6 +36,8 @@ const STATUS_TONES: Readonly<Record<string, StatusTone>> = {
   // Transport
   Scheduled: 'info',
   'Awaiting Approval': 'warn',
+  Completed: 'success',
+  Cancelled: 'neutral',
 };
 
 /**

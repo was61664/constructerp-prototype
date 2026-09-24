@@ -1,14 +1,19 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 
 import type {
+  CostEntryDto,
   EquipmentDto,
   EquipmentTypeDto,
   LocalizedTextDto,
   ProjectDto,
+  RentalDto,
   RequestDto,
   SaveEquipmentRequest,
+  SaveCostEntryRequest,
   SaveProjectRequest,
   SaveRequestRequest,
+  TransportMoveDto,
+  VendorDto,
 } from '../data/api-contracts';
 import { ErpGateway } from '../data/erp-gateway';
 import {
@@ -17,8 +22,10 @@ import {
   SEED_PROJECTS,
   SEED_RENTALS,
   SEED_TRANSPORT,
+  SEED_VENDORS,
 } from '../data/mock-data';
 import type {
+  CostEntry,
   Equipment,
   EquipmentRequest,
   EquipmentTypeOption,
@@ -26,8 +33,11 @@ import type {
   ProjectCostLine,
   ProjectRecord,
   Rental,
+  TransportAction,
   TransportMove,
+  Vendor,
 } from '../models';
+import { AuthService } from './auth';
 import { I18nService } from './i18n';
 
 /**
@@ -39,26 +49,55 @@ import { I18nService } from './i18n';
  * Arabic re-derives the names from data already in memory rather than
  * refetching every list.
  *
- * Requests, rentals, inspections and transport still come from localStorage —
- * those endpoints do not exist yet. The backend is being migrated one module at
- * a time and this class is where the halves meet.
+ * Inspections are the last module still held in memory — that endpoint does
+ * not exist yet. The backend is being migrated one module at a time and this
+ * class is where the halves meet.
  */
+/**
+ * Sent in place of a code when creating a record: the API allocates one.
+ *
+ * The client used to guess, by taking the highest code it could see and
+ * adding one. Soft-deleted rows are hidden from it but still hold their code
+ * in the unique index, so deleting REQ-0001 and creating a new request
+ * guessed REQ-0001 again — which passed every check the browser could make
+ * and then failed at the database as a 500.
+ */
+const SERVER_ASSIGNED_CODE = '';
+
 @Injectable({ providedIn: 'root' })
 export class ErpStore {
   private readonly gateway = inject(ErpGateway);
   private readonly i18n = inject(I18nService);
+  private readonly auth = inject(AuthService);
+
+  /**
+   * Seed rows, but only when there is no API to contradict them.
+   *
+   * With a real backend the app shows what the API returned or nothing at all.
+   * Falling back to demo data when a request fails puts fabricated records on
+   * screen that look exactly like real ones — and for a scoped user it shows
+   * rows the server deliberately withheld.
+   */
+  private seed<T>(rows: readonly T[]): T[] {
+    return this.gateway.hasApi ? [] : [...rows];
+  }
 
   // --- Raw API state --------------------------------------------------------
-  private readonly projectDtos = signal<ProjectDto[]>([...SEED_PROJECTS]);
-  private readonly equipmentDtos = signal<EquipmentDto[]>([...SEED_EQUIPMENT]);
+  private readonly projectDtos = signal<ProjectDto[]>(this.seed(SEED_PROJECTS));
+  private readonly equipmentDtos = signal<EquipmentDto[]>(this.seed(SEED_EQUIPMENT));
   private readonly equipmentTypeDtos = signal<EquipmentTypeDto[]>([]);
   private readonly requestDtos = signal<RequestDto[]>([]);
+  private readonly costEntryDtos = signal<CostEntryDto[]>([]);
+  private readonly rentalDtos = signal<RentalDto[]>(this.seed(SEED_RENTALS));
+  private readonly vendorDtos = signal<VendorDto[]>(this.seed(SEED_VENDORS));
+  private readonly transportDtos = signal<TransportMoveDto[]>(this.seed(SEED_TRANSPORT));
 
   private readonly loadingSignal = signal(false);
   private readonly loadErrorSignal = signal<string | null>(null);
 
   readonly loading = this.loadingSignal.asReadonly();
-  /** Non-null when the API could not be reached; the app falls back to seeds. */
+  /** Non-null when a load failed. With an API configured, nothing is shown in
+   * place of the missing data — a seeded fallback would look like real rows. */
   readonly loadError = this.loadErrorSignal.asReadonly();
 
   // --- Localised view models ------------------------------------------------
@@ -138,6 +177,25 @@ export class ErpStore {
     })),
   );
 
+  /**
+   * The individual rows behind each project's spend totals.
+   *
+   * The totals on a project are summed from exactly these by the API, so the
+   * Costs screen can show a figure and the records that produce it side by
+   * side — and they cannot disagree.
+   */
+  readonly costEntries = computed<CostEntry[]>(() =>
+    this.costEntryDtos().map((dto) => ({
+      id: dto.id,
+      projectId: dto.projectId,
+      projectCode: dto.projectCode,
+      category: dto.category,
+      amount: dto.amount,
+      incurredOn: dto.incurredOn,
+      description: this.pick(dto.description),
+    })),
+  );
+
   readonly equipmentTypes = computed<EquipmentTypeOption[]>(() =>
     this.equipmentTypeDtos().map((dto) => ({
       id: dto.id,
@@ -146,10 +204,83 @@ export class ErpStore {
     })),
   );
 
+  /**
+   * Note that `status` is carried straight through from the DTO.
+   *
+   * It is derived server-side from the rental's dates on every read, so there
+   * is deliberately nothing here that computes or overrides it — recomputing
+   * it in the browser would be a second implementation to drift.
+   */
+  readonly rentals = computed<Rental[]>(() =>
+    this.rentalDtos().map((dto) => ({
+      id: dto.id,
+      code: dto.code,
+      vendorId: dto.vendorId,
+      vendor: this.pick(dto.vendorName),
+      equipmentId: dto.equipmentId,
+      assetCode: dto.equipmentCode,
+      asset: this.pick(dto.equipmentName),
+      projectId: dto.projectId,
+      project: dto.projectName ? this.pick(dto.projectName) : '',
+      startedOn: dto.startedOn,
+      returnDate: dto.expectedReturnOn,
+      returnBookedOn: dto.returnBookedOn,
+      returnedOn: dto.returnedOn,
+      amount: dto.amount,
+      status: dto.status,
+      daysOverdue: dto.daysOverdue,
+      notes: this.pick(dto.notes),
+    })),
+  );
+
+  readonly vendors = computed<Vendor[]>(() =>
+    this.vendorDtos().map((dto) => ({
+      id: dto.id,
+      code: dto.code,
+      name: this.pick(dto.name),
+      contactName: dto.contactName,
+      phone: dto.phone,
+      email: dto.email,
+      rentalCount: dto.rentalCount,
+      openRentalCount: dto.openRentalCount,
+      totalSpend: dto.totalSpend,
+    })),
+  );
+
+  /**
+   * `status`, `isLate` and `availableActions` all come straight from the DTO.
+   *
+   * Each is derived server-side from the move's event timestamps on every
+   * read, so nothing here recomputes them — a second implementation in the
+   * browser is exactly what would drift.
+   */
+  readonly transportMoves = computed<TransportMove[]>(() =>
+    this.transportDtos().map((dto) => ({
+      id: dto.id,
+      code: dto.code,
+      equipmentId: dto.equipmentId,
+      assetCode: dto.equipmentCode,
+      asset: this.pick(dto.equipmentName),
+      projectId: dto.projectId,
+      project: dto.projectName ? this.pick(dto.projectName) : '',
+      origin: this.pick(dto.origin),
+      destination: this.pick(dto.destination),
+      kind: dto.kind,
+      schedule: dto.scheduledFor,
+      approvedAt: dto.approvedAt,
+      departedAt: dto.departedAt,
+      arrivedAt: dto.arrivedAt,
+      cancelledAt: dto.cancelledAt,
+      cost: dto.cost,
+      status: dto.status,
+      isLate: dto.isLate,
+      availableActions: dto.availableActions,
+      notes: this.pick(dto.notes),
+    })),
+  );
+
   // --- Entities still held locally ------------------------------------------
-  readonly rentals = signal<Rental[]>([...SEED_RENTALS]).asReadonly();
   readonly inspections = signal<Inspection[]>([...SEED_INSPECTIONS]).asReadonly();
-  readonly transportMoves = signal<TransportMove[]>([...SEED_TRANSPORT]).asReadonly();
 
   // --- Selection ------------------------------------------------------------
   private readonly selectedEquipmentIdSignal = signal<string>('');
@@ -176,6 +307,7 @@ export class ErpStore {
 
   readonly projectCosts = computed<ProjectCostLine[]>(() =>
     this.projects().map((project) => ({
+      projectId: project.id,
       project: project.name,
       equipment: project.equipmentSpend,
       transport: project.transportSpend,
@@ -218,26 +350,46 @@ export class ErpStore {
     this.loadErrorSignal.set(null);
 
     try {
-      const [projects, equipment, types, requests] = await Promise.all([
-        this.gateway.getProjects(),
-        this.gateway.getEquipment(),
-        this.gateway.getEquipmentTypes(),
-        this.gateway.getRequests(),
+      // Fetched per role, not all at once. A carrier calling /api/projects
+      // gets a 403 it was always going to get — seven of them, filling the
+      // console and, worse, failing the whole batch.
+      await Promise.all([
+        this.auth.canReach('projects') ? this.loadInternalAsync() : Promise.resolve(),
+        this.auth.canReach('transport') ? this.loadTransportAsync() : Promise.resolve(),
       ]);
-
-      this.projectDtos.set(projects);
-      this.equipmentDtos.set(equipment);
-      this.equipmentTypeDtos.set(types);
-      this.requestDtos.set(requests);
-
-      if (!this.selectedEquipmentIdSignal() && equipment.length) {
-        this.selectedEquipmentIdSignal.set(equipment[0].id);
-      }
     } catch (error) {
       this.loadErrorSignal.set(error instanceof Error ? error.message : 'Failed to load data.');
     } finally {
       this.loadingSignal.set(false);
     }
+  }
+
+  private async loadInternalAsync(): Promise<void> {
+    const [projects, equipment, types, requests, rentals, vendors, costs] = await Promise.all([
+      this.gateway.getProjects(),
+      this.gateway.getEquipment(),
+      this.gateway.getEquipmentTypes(),
+      this.gateway.getRequests(),
+      this.gateway.getRentals(),
+      this.gateway.getVendors(),
+      this.gateway.getCostEntries(),
+    ]);
+
+    this.projectDtos.set(projects);
+    this.equipmentDtos.set(equipment);
+    this.equipmentTypeDtos.set(types);
+    this.requestDtos.set(requests);
+    this.rentalDtos.set(rentals);
+    this.vendorDtos.set(vendors);
+    this.costEntryDtos.set(costs);
+
+    if (!this.selectedEquipmentIdSignal() && equipment.length) {
+      this.selectedEquipmentIdSignal.set(equipment[0].id);
+    }
+  }
+
+  private async loadTransportAsync(): Promise<void> {
+    this.transportDtos.set(await this.gateway.getTransportMoves());
   }
 
   // --- Projects -------------------------------------------------------------
@@ -266,10 +418,7 @@ export class ErpStore {
   }
 
   nextProjectCode(): string {
-    return `PRJ-${this.nextSequence(
-      this.projects().map((project) => project.code),
-      'PRJ-',
-    )}`;
+    return SERVER_ASSIGNED_CODE;
   }
 
   // --- Equipment ------------------------------------------------------------
@@ -303,10 +452,7 @@ export class ErpStore {
   }
 
   nextEquipmentCode(): string {
-    return `EQ-${this.nextSequence(
-      this.equipment().map((item) => item.code),
-      'EQ-',
-    )}`;
+    return SERVER_ASSIGNED_CODE;
   }
 
   // --- Requests -------------------------------------------------------------
@@ -359,10 +505,7 @@ export class ErpStore {
   }
 
   nextRequestCode(): string {
-    return `REQ-${this.nextSequence(
-      this.requests().map((request) => request.code),
-      'REQ-',
-    )}`;
+    return SERVER_ASSIGNED_CODE;
   }
 
   private upsert(request: RequestDto): void {
@@ -371,6 +514,107 @@ export class ErpStore {
         ? requests.map((item) => (item.id === request.id ? request : item))
         : [request, ...requests],
     );
+  }
+
+  // --- Costs ----------------------------------------------------------------
+
+  /** Entries for one project, newest first. */
+  costEntriesForProject(projectId: string): CostEntry[] {
+    return this.costEntries().filter((entry) => entry.projectId === projectId);
+  }
+
+  /**
+   * Adding or removing an entry moves the project total it feeds.
+   *
+   * The project is refetched rather than adjusted locally: the API is what
+   * sums these, and recomputing the total here would be a second answer to the
+   * same question.
+   */
+  async createCostEntry(entry: Omit<CostEntry, 'id' | 'projectCode'>): Promise<void> {
+    const created = await this.gateway.createCostEntry(this.toCostRequest(entry));
+
+    this.costEntryDtos.update((entries) => [created, ...entries]);
+    this.projectDtos.set(await this.gateway.getProjects());
+  }
+
+  async deleteCostEntry(id: string): Promise<void> {
+    await this.gateway.deleteCostEntry(id);
+
+    this.costEntryDtos.update((entries) => entries.filter((entry) => entry.id !== id));
+    this.projectDtos.set(await this.gateway.getProjects());
+  }
+
+  private toCostRequest(entry: Omit<CostEntry, 'id' | 'projectCode'>): SaveCostEntryRequest {
+    return {
+      projectId: entry.projectId,
+      category: entry.category,
+      amount: entry.amount,
+      incurredOn: entry.incurredOn,
+      description: this.toLocalized(entry.description, undefined),
+    };
+  }
+
+  // --- Rentals --------------------------------------------------------------
+
+  /**
+   * Books a collection, and records one happening.
+   *
+   * There is no `setRentalStatus` alongside these, and there should never be.
+   * A rental goes overdue when its return date passes and stops being overdue
+   * when the return is recorded — both endpoints return the re-derived row, so
+   * the screen updates from the same source that decided it.
+   */
+  async bookRentalReturn(id: string, bookedOn: string | null = null): Promise<void> {
+    this.upsertRental(await this.gateway.bookRentalReturn(id, bookedOn));
+  }
+
+  async returnRental(id: string, returnedOn: string | null = null): Promise<void> {
+    this.upsertRental(await this.gateway.returnRental(id, returnedOn));
+
+    // The asset is back in the yard, so its own status may have moved with it.
+    this.equipmentDtos.set(await this.gateway.getEquipment());
+  }
+
+  async deleteRental(id: string): Promise<void> {
+    await this.gateway.deleteRental(id);
+
+    this.rentalDtos.update((rentals) => rentals.filter((item) => item.id !== id));
+    this.vendorDtos.set(await this.gateway.getVendors());
+  }
+
+  private upsertRental(rental: RentalDto): void {
+    this.rentalDtos.update((rentals) =>
+      rentals.some((item) => item.id === rental.id)
+        ? rentals.map((item) => (item.id === rental.id ? rental : item))
+        : [rental, ...rentals],
+    );
+  }
+
+  // --- Transport ------------------------------------------------------------
+
+  /**
+   * Records one event and lets the API re-derive the status.
+   *
+   * Deliberately one method for all four transitions rather than a
+   * `setTransportStatus`: the action names are the events, and the API decides
+   * whether each is allowed. A refusal propagates so the caller can show the
+   * server's own sentence.
+   */
+  async transitionTransportMove(id: string, action: TransportAction): Promise<void> {
+    const updated = await this.gateway.transitionTransportMove(id, action);
+
+    this.transportDtos.update((moves) => moves.map((move) => (move.id === id ? updated : move)));
+
+    // Departure and arrival move the asset, so its own status may have changed.
+    if (action === 'depart' || action === 'arrive') {
+      this.equipmentDtos.set(await this.gateway.getEquipment());
+    }
+  }
+
+  async deleteTransportMove(id: string): Promise<void> {
+    await this.gateway.deleteTransportMove(id);
+
+    this.transportDtos.update((moves) => moves.filter((move) => move.id !== id));
   }
 
   // --- Cross-entity lookups -------------------------------------------------
@@ -460,14 +704,5 @@ export class ErpStore {
       dailyCost: item.dailyCost,
       nextAction: this.toLocalized(item.nextAction, existing?.nextAction),
     };
-  }
-
-  private nextSequence(values: readonly string[], prefix: string): string {
-    const highest = values
-      .map((value) => Number(value.replace(prefix, '')))
-      .filter((value) => Number.isFinite(value))
-      .reduce((max, value) => Math.max(max, value), 0);
-
-    return String(highest + 1).padStart(4, '0');
   }
 }

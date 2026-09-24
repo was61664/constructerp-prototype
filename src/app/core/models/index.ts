@@ -5,3 +5,4 @@ export * from './navigation';
 export * from './project';
 export * from './rental';
 export * from './transport-move';
+export * from './user';

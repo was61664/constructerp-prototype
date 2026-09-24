@@ -13,7 +13,12 @@
     <div class="form-grid">
       <mat-form-field>
         <mat-label>{{ i18n.t('code') }}</mat-label>
-        <input matInput formControlName="code" required />
+        <input
+          matInput
+          formControlName="code"
+          [required]="data.mode !== 'create'"
+          [placeholder]="data.mode === 'create' ? i18n.t('assignedOnSave') : ''"
+        />
       </mat-form-field>
 
       <mat-form-field>

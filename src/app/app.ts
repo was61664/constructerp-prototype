@@ -1,26 +1,17 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
-
-import { ErpStore } from './core/services/erp-store';
-import { Shell } from './layout/shell/shell';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 /**
- * Application root. Intentionally thin: all layout lives in Shell and all
- * screens are lazy-loaded routes. (This file was previously a 1,206-line
- * component holding every screen, every translation and every CRUD method.)
+ * Application root. Intentionally thin: it renders whichever route matched —
+ * the login form, or the Shell layout with a module inside it. (This file was
+ * previously a 1,206-line component holding every screen, every translation
+ * and every CRUD method.)
  */
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Shell],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App implements OnInit {
-  private readonly store = inject(ErpStore);
-
-  ngOnInit(): void {
-    // Fire and forget: the store records a load failure and keeps its seeded
-    // fallback, so a missing API degrades rather than blanking the screen.
-    void this.store.load();
-  }
-}
+export class App {}

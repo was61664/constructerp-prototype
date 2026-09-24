@@ -26,8 +26,31 @@ export interface ProjectRecord {
   progress: number;
 }
 
+export type CostCategory = 'Equipment' | 'Transport' | 'Extras';
+
+/**
+ * One line of spend against a project.
+ *
+ * These are the records the project's three spend totals are summed from. The
+ * prototype had no such thing — the totals were numbers typed onto the project
+ * itself, so there was nothing behind them to check.
+ */
+export interface CostEntry {
+  id: string;
+  projectId: string;
+  projectCode: string;
+  category: CostCategory;
+  /** KWD. */
+  amount: number;
+  /** ISO date. */
+  incurredOn: string;
+  description: string;
+}
+
 /** Spend breakdown derived from a project, used by the Costs screen. */
 export interface ProjectCostLine {
+  /** Database key, so the screen can pull this project's own cost entries. */
+  projectId: string;
   project: string;
   equipment: number;
   transport: number;

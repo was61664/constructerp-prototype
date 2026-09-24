@@ -1,4 +1,89 @@
+@use 'tokens' as *;
+
 .rentals-table {
   inline-size: 100%;
-  min-inline-size: 760px;
+  min-inline-size: 880px;
+}
+
+.action-error {
+  padding: $space-md;
+  background: $status-danger-bg;
+  color: $status-danger-fg;
+  border: 1px solid $status-danger-fg;
+  border-radius: $radius;
+  font-size: 13px;
+}
+
+// The vendor code under the name, and the "7 days late" line under the due
+// date: both stack under their value rather than beside it.
+.rentals-table td {
+  .muted {
+    display: block;
+    font-size: 12px;
+    color: $text-hint;
+  }
+
+  .late {
+    color: $status-danger-fg;
+    font-weight: 600;
+  }
+}
+
+.rental-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+  justify-content: flex-end;
+}
+
+.vendor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: $space-md;
+  padding-block: $space-md;
+  border-bottom: $border;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  // One column per line on a phone: three columns at 375px leaves no room for
+  // a phone number without it wrapping mid-digit.
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+    gap: $space-sm;
+  }
+}
+
+.vendor-identity,
+.vendor-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vendor-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+
+  @media (max-width: 720px) {
+    align-items: flex-start;
+  }
+}
+
+.vendor-row .muted {
+  font-size: 12px;
+  color: $text-hint;
 }

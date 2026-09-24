@@ -57,7 +57,10 @@ export class RequestFormDialog {
   protected readonly ownerships = OWNERSHIPS;
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    code: [this.data.request.code, Validators.required],
+    // Required only when editing. On create the value is blank and the API
+    // allocates the code, because only the server can see the soft-deleted
+    // rows whose codes are still held by the unique index.
+    code: [this.data.request.code, this.data.mode === 'create' ? [] : Validators.required],
     equipmentId: [this.data.request.equipmentId, Validators.required],
     projectId: [this.data.request.projectId],
     ownership: [this.data.request.ownership],
