@@ -4,6 +4,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 
 import { App } from './app';
+import { Shell } from './layout/shell/shell';
 import { routes } from './app.routes';
 import type {
   CostEntryDto,
@@ -128,6 +129,32 @@ function fakeMove(
     cost: 500,
     notes: { en: '', ar: null },
   });
+}
+
+/**
+ * Plants a signed-in session before a component is created.
+ *
+ * AuthService restores from localStorage in its constructor, so writing the
+ * key here is how a test starts out signed in. The test environment does
+ * configure an API url, which means role filtering is live — a suite that
+ * skipped this would see an empty sidebar and call it a bug.
+ */
+function signInAs(role: 'Admin' | 'TruckingCompany' | 'Driver'): void {
+  localStorage.setItem(
+    'constructerp.session',
+    JSON.stringify({
+      accessToken: 'test-token',
+      refreshToken: 'test-refresh',
+      user: {
+        id: 'u1',
+        email: `${role.toLowerCase()}@test.local`,
+        displayName: role,
+        role,
+        organizationId: role === 'Admin' ? null : 'org-1',
+        organizationName: role === 'Admin' ? '' : 'Delta Haulage',
+      },
+    }),
+  );
 }
 
 function fakeCost(id: string, category: CostEntryDto['category'], amount: number): CostEntryDto {
@@ -393,6 +420,7 @@ class FakeGateway {
 describe('App shell', () => {
   beforeEach(async () => {
     localStorage.clear();
+    signInAs('Admin');
 
     await TestBed.configureTestingModule({
       imports: [App],
@@ -412,8 +440,11 @@ describe('App shell', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
+  // App is now a bare router-outlet: the Shell is a layout ROUTE, so that the
+  // sidebar and toolbar exist only behind the auth guard. These two therefore
+  // render Shell directly rather than going through routing.
   it('should render the sidebar and toolbar', () => {
-    const fixture = TestBed.createComponent(App);
+    const fixture = TestBed.createComponent(Shell);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -423,7 +454,7 @@ describe('App shell', () => {
   });
 
   it('should render every navigation group', () => {
-    const fixture = TestBed.createComponent(App);
+    const fixture = TestBed.createComponent(Shell);
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
@@ -432,6 +463,22 @@ describe('App shell', () => {
     expect(compiled.textContent).toContain('Main Data');
     expect(compiled.textContent).toContain('Project Operations');
     expect(compiled.textContent).toContain('Analytics');
+  });
+
+  it('should show a carrier only the modules its role can open', () => {
+    localStorage.clear();
+    signInAs('TruckingCompany');
+
+    const fixture = TestBed.createComponent(Shell);
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+    // Cosmetic only — the API refuses these routes regardless. But offering a
+    // haulage contractor a link to the cost ledger is still wrong.
+    expect(text).toContain('Transport');
+    expect(text).not.toContain('Project Costs');
+    expect(text).not.toContain('Main Data');
   });
 
   it('should switch the document to Arabic right-to-left', () => {
@@ -570,10 +617,19 @@ describe('ThemeService', () => {
 });
 
 describe('SearchService', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
-    // SearchService -> ErpStore -> ErpGateway -> HttpClient.
-    TestBed.configureTestingModule({ providers: [provideHttpClient()] });
+    signInAs('Admin');
+
+    // A fake gateway and an explicit load, rather than leaning on seed data.
+    // With an API configured the store starts EMPTY on purpose — showing demo
+    // rows when a fetch has not happened is how fabricated records reach the
+    // screen looking real.
+    TestBed.configureTestingModule({
+      providers: [{ provide: ErpGateway, useValue: new FakeGateway() }, provideHttpClient()],
+    });
+
+    await TestBed.inject(ErpStore).load();
   });
 
   afterEach(() => localStorage.clear());
@@ -585,9 +641,11 @@ describe('SearchService', () => {
     expect(search.groups()).toEqual([]);
   });
 
+  // Terms match the fake gateway's fleet ("Crawler Crane 80T" / "ونش زاحف
+  // 80 طن"), not the old seed data these used to lean on.
   it('should find records by English term', () => {
     const search = TestBed.inject(SearchService);
-    search.query.set('excavator');
+    search.query.set('crawler');
 
     expect(search.resultCount()).toBeGreaterThan(0);
     expect(search.groups().some((group) => group.module === 'equipment')).toBeTrue();
@@ -596,10 +654,10 @@ describe('SearchService', () => {
   it('should find the same records by Arabic term while the UI is English', () => {
     const search = TestBed.inject(SearchService);
 
-    search.query.set('excavator');
+    search.query.set('crawler');
     const english = search.resultCount();
 
-    search.query.set('حفار');
+    search.query.set('زاحف');
 
     // Regression guard: matching through i18n.text() restricted search to the
     // active UI language, so Arabic queries silently returned nothing.
@@ -633,9 +691,12 @@ describe('Rentals', () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    // load() is role-aware now, so a suite that never signs in fetches
+    // nothing. Admin is the role these suites are exercising.
+    signInAs('Admin');
     gateway = new FakeGateway();
     TestBed.configureTestingModule({
-      providers: [{ provide: ErpGateway, useValue: gateway }],
+      providers: [{ provide: ErpGateway, useValue: gateway }, provideHttpClient()],
     });
 
     await TestBed.inject(ErpStore).load();
@@ -715,8 +776,11 @@ describe('Rentals', () => {
 describe('Costs', () => {
   beforeEach(async () => {
     localStorage.clear();
+    // load() is role-aware now, so a suite that never signs in fetches
+    // nothing. Admin is the role these suites are exercising.
+    signInAs('Admin');
     TestBed.configureTestingModule({
-      providers: [{ provide: ErpGateway, useValue: new FakeGateway() }],
+      providers: [{ provide: ErpGateway, useValue: new FakeGateway() }, provideHttpClient()],
     });
 
     await TestBed.inject(ErpStore).load();
@@ -784,9 +848,12 @@ describe('Transport', () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    // load() is role-aware now, so a suite that never signs in fetches
+    // nothing. Admin is the role these suites are exercising.
+    signInAs('Admin');
     gateway = new FakeGateway();
     TestBed.configureTestingModule({
-      providers: [{ provide: ErpGateway, useValue: gateway }],
+      providers: [{ provide: ErpGateway, useValue: gateway }, provideHttpClient()],
     });
 
     await TestBed.inject(ErpStore).load();
@@ -886,8 +953,11 @@ describe('Transport', () => {
 describe('NotificationsService', () => {
   beforeEach(async () => {
     localStorage.clear();
+    // load() is role-aware now, so a suite that never signs in fetches
+    // nothing. Admin is the role these suites are exercising.
+    signInAs('Admin');
     TestBed.configureTestingModule({
-      providers: [{ provide: ErpGateway, useValue: new FakeGateway() }],
+      providers: [{ provide: ErpGateway, useValue: new FakeGateway() }, provideHttpClient()],
     });
 
     await TestBed.inject(ErpStore).load();
@@ -1083,9 +1153,12 @@ describe('ErpStore', () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    // load() is role-aware now, so a suite that never signs in fetches
+    // nothing. Admin is the role these suites are exercising.
+    signInAs('Admin');
     gateway = new FakeGateway();
     TestBed.configureTestingModule({
-      providers: [{ provide: ErpGateway, useValue: gateway }],
+      providers: [{ provide: ErpGateway, useValue: gateway }, provideHttpClient()],
     });
 
     await TestBed.inject(ErpStore).load();

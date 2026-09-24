@@ -37,6 +37,7 @@ import type {
   TransportMove,
   Vendor,
 } from '../models';
+import { AuthService } from './auth';
 import { I18nService } from './i18n';
 
 /**
@@ -56,22 +57,36 @@ import { I18nService } from './i18n';
 export class ErpStore {
   private readonly gateway = inject(ErpGateway);
   private readonly i18n = inject(I18nService);
+  private readonly auth = inject(AuthService);
+
+  /**
+   * Seed rows, but only when there is no API to contradict them.
+   *
+   * With a real backend the app shows what the API returned or nothing at all.
+   * Falling back to demo data when a request fails puts fabricated records on
+   * screen that look exactly like real ones — and for a scoped user it shows
+   * rows the server deliberately withheld.
+   */
+  private seed<T>(rows: readonly T[]): T[] {
+    return this.gateway.hasApi ? [] : [...rows];
+  }
 
   // --- Raw API state --------------------------------------------------------
-  private readonly projectDtos = signal<ProjectDto[]>([...SEED_PROJECTS]);
-  private readonly equipmentDtos = signal<EquipmentDto[]>([...SEED_EQUIPMENT]);
+  private readonly projectDtos = signal<ProjectDto[]>(this.seed(SEED_PROJECTS));
+  private readonly equipmentDtos = signal<EquipmentDto[]>(this.seed(SEED_EQUIPMENT));
   private readonly equipmentTypeDtos = signal<EquipmentTypeDto[]>([]);
   private readonly requestDtos = signal<RequestDto[]>([]);
   private readonly costEntryDtos = signal<CostEntryDto[]>([]);
-  private readonly rentalDtos = signal<RentalDto[]>([...SEED_RENTALS]);
-  private readonly vendorDtos = signal<VendorDto[]>([...SEED_VENDORS]);
-  private readonly transportDtos = signal<TransportMoveDto[]>([...SEED_TRANSPORT]);
+  private readonly rentalDtos = signal<RentalDto[]>(this.seed(SEED_RENTALS));
+  private readonly vendorDtos = signal<VendorDto[]>(this.seed(SEED_VENDORS));
+  private readonly transportDtos = signal<TransportMoveDto[]>(this.seed(SEED_TRANSPORT));
 
   private readonly loadingSignal = signal(false);
   private readonly loadErrorSignal = signal<string | null>(null);
 
   readonly loading = this.loadingSignal.asReadonly();
-  /** Non-null when the API could not be reached; the app falls back to seeds. */
+  /** Non-null when a load failed. With an API configured, nothing is shown in
+   * place of the missing data — a seeded fallback would look like real rows. */
   readonly loadError = this.loadErrorSignal.asReadonly();
 
   // --- Localised view models ------------------------------------------------
@@ -324,35 +339,46 @@ export class ErpStore {
     this.loadErrorSignal.set(null);
 
     try {
-      const [projects, equipment, types, requests, rentals, vendors, transport, costs] =
-        await Promise.all([
-          this.gateway.getProjects(),
-          this.gateway.getEquipment(),
-          this.gateway.getEquipmentTypes(),
-          this.gateway.getRequests(),
-          this.gateway.getRentals(),
-          this.gateway.getVendors(),
-          this.gateway.getTransportMoves(),
-          this.gateway.getCostEntries(),
-        ]);
-
-      this.projectDtos.set(projects);
-      this.equipmentDtos.set(equipment);
-      this.equipmentTypeDtos.set(types);
-      this.requestDtos.set(requests);
-      this.rentalDtos.set(rentals);
-      this.vendorDtos.set(vendors);
-      this.transportDtos.set(transport);
-      this.costEntryDtos.set(costs);
-
-      if (!this.selectedEquipmentIdSignal() && equipment.length) {
-        this.selectedEquipmentIdSignal.set(equipment[0].id);
-      }
+      // Fetched per role, not all at once. A carrier calling /api/projects
+      // gets a 403 it was always going to get — seven of them, filling the
+      // console and, worse, failing the whole batch.
+      await Promise.all([
+        this.auth.canReach('projects') ? this.loadInternalAsync() : Promise.resolve(),
+        this.auth.canReach('transport') ? this.loadTransportAsync() : Promise.resolve(),
+      ]);
     } catch (error) {
       this.loadErrorSignal.set(error instanceof Error ? error.message : 'Failed to load data.');
     } finally {
       this.loadingSignal.set(false);
     }
+  }
+
+  private async loadInternalAsync(): Promise<void> {
+    const [projects, equipment, types, requests, rentals, vendors, costs] = await Promise.all([
+      this.gateway.getProjects(),
+      this.gateway.getEquipment(),
+      this.gateway.getEquipmentTypes(),
+      this.gateway.getRequests(),
+      this.gateway.getRentals(),
+      this.gateway.getVendors(),
+      this.gateway.getCostEntries(),
+    ]);
+
+    this.projectDtos.set(projects);
+    this.equipmentDtos.set(equipment);
+    this.equipmentTypeDtos.set(types);
+    this.requestDtos.set(requests);
+    this.rentalDtos.set(rentals);
+    this.vendorDtos.set(vendors);
+    this.costEntryDtos.set(costs);
+
+    if (!this.selectedEquipmentIdSignal() && equipment.length) {
+      this.selectedEquipmentIdSignal.set(equipment[0].id);
+    }
+  }
+
+  private async loadTransportAsync(): Promise<void> {
+    this.transportDtos.set(await this.gateway.getTransportMoves());
   }
 
   // --- Projects -------------------------------------------------------------

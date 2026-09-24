@@ -1,0 +1,60 @@
+@use 'tokens' as *;
+
+.login-page {
+  min-block-size: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: $space-lg;
+  background: $app-background;
+}
+
+.login-card {
+  inline-size: 100%;
+  max-inline-size: 400px;
+  padding: $space-xl;
+  background: $surface;
+  border: $border;
+  border-radius: $radius;
+}
+
+.login-head {
+  text-align: center;
+  margin-block-end: $space-lg;
+
+  h1 {
+    margin: $space-sm 0 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+}
+
+.login-logo {
+  display: block;
+  margin-inline: auto;
+}
+
+.login-sub {
+  margin: $space-xs 0 0;
+  font-size: 13px;
+  color: $text-secondary;
+}
+
+.login-error {
+  margin-block-end: $space-md;
+  padding: $space-md;
+  background: $status-danger-bg;
+  color: $status-danger-fg;
+  border: 1px solid $status-danger-fg;
+  border-radius: $radius;
+  font-size: 13px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.login-submit {
+  margin-block-start: $space-sm;
+}

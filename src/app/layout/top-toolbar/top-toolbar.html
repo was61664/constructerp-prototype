@@ -27,8 +27,40 @@
     {{ i18n.t('langToggle') }}
   </button>
 
-  <button mat-raised-button color="primary" type="button" (click)="newRequestRequested.emit()">
-    <svg lucidePlus size="16" aria-hidden="true"></svg>
-    <span>{{ i18n.t('newRequest') }}</span>
-  </button>
+  @if (canCreateRequests) {
+    <button mat-raised-button color="primary" type="button" (click)="newRequestRequested.emit()">
+      <svg lucidePlus size="16" aria-hidden="true"></svg>
+      <span>{{ i18n.t('newRequest') }}</span>
+    </button>
+  }
+
+  @if (auth.user(); as user) {
+    <button
+      mat-icon-button
+      type="button"
+      class="account-button"
+      [matMenuTriggerFor]="accountMenu"
+      [attr.aria-label]="user.displayName"
+    >
+      <svg lucideUser size="20" aria-hidden="true"></svg>
+    </button>
+
+    <mat-menu #accountMenu="matMenu">
+      <div class="account-card" role="presentation">
+        <strong>{{ user.displayName }}</strong>
+        <span class="muted">{{ user.email }}</span>
+        <!-- The role and the organization are two different things, so both
+             are shown: what they may do, and whose data they are seeing. -->
+        <span class="muted">{{ i18n.text(user.role) }}</span>
+        @if (user.organizationName) {
+          <span class="muted">{{ i18n.text(user.organizationName) }}</span>
+        }
+      </div>
+
+      <button mat-menu-item type="button" (click)="signOut()">
+        <svg lucideLogOut size="16" aria-hidden="true"></svg>
+        <span>{{ i18n.t('signOut') }}</span>
+      </button>
+    </mat-menu>
+  }
 </mat-toolbar>

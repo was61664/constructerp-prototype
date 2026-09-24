@@ -4,13 +4,14 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MAT_DIALOG_DEFAULT_OPTIONS, MatDialogConfig } from '@angular/material/dialog';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 
 import { routes } from './app.routes';
+import { authInterceptor } from './core/data/auth-interceptor';
 
 /** Outline fields everywhere — filled fields read as a later Material era. */
 const formFieldDefaults = { appearance: 'outline' } as const;
@@ -34,7 +35,9 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     // withFetch: uses the Fetch API rather than XHR, which is the modern
     // default and gives better streaming and abort behaviour.
-    provideHttpClient(withFetch()),
+    // The interceptor attaches the access token and recovers once from an
+    // expired one, so no service has to think about either.
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     { provide: DEFAULT_CURRENCY_CODE, useValue: 'KWD' },
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: formFieldDefaults },
     { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: dialogDefaults },
