@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import type {
+  CostEntryDto,
   EquipmentDto,
   EquipmentTypeDto,
   LocalizedTextDto,
@@ -12,6 +13,7 @@ import type {
   RentalDto,
   RequestDto,
   SaveEquipmentRequest,
+  SaveCostEntryRequest,
   SaveProjectRequest,
   SaveRentalRequest,
   SaveRequestRequest,
@@ -59,6 +61,31 @@ export class ErpGateway {
 
   deleteProject(id: string): Promise<void> {
     return firstValueFrom(this.http.delete<void>(`${this.baseUrl}/api/projects/${id}`));
+  }
+
+  // --- Costs ----------------------------------------------------------------
+
+  /**
+   * The entries behind each project's spend totals.
+   *
+   * The totals arrive on the project DTO already summed by the API; these are
+   * the rows they are summed FROM, so the Costs screen can show the detail and
+   * let someone add to it.
+   */
+  getCostEntries(): Promise<CostEntryDto[]> {
+    return firstValueFrom(this.http.get<CostEntryDto[]>(`${this.baseUrl}/api/costs`));
+  }
+
+  createCostEntry(request: SaveCostEntryRequest): Promise<CostEntryDto> {
+    return firstValueFrom(this.http.post<CostEntryDto>(`${this.baseUrl}/api/costs`, request));
+  }
+
+  updateCostEntry(id: string, request: SaveCostEntryRequest): Promise<CostEntryDto> {
+    return firstValueFrom(this.http.put<CostEntryDto>(`${this.baseUrl}/api/costs/${id}`, request));
+  }
+
+  deleteCostEntry(id: string): Promise<void> {
+    return firstValueFrom(this.http.delete<void>(`${this.baseUrl}/api/costs/${id}`));
   }
 
   // --- Equipment ------------------------------------------------------------

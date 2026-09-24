@@ -2,7 +2,7 @@
   <app-page-header
     [eyebrow]="i18n.t('projectCosts')"
     [title]="i18n.t('costTitle')"
-    [subtitle]="i18n.t('costSplit')"
+    [subtitle]="i18n.t('entriesBehindTotal')"
   />
 
   <section class="grid grid-thirds" [attr.aria-label]="i18n.t('costSplit')">
@@ -23,6 +23,10 @@
     />
   </section>
 
+  @if (actionError(); as error) {
+    <p class="action-error" role="alert">{{ error }}</p>
+  }
+
   @if (!store.projectCosts().length) {
     <app-section-card [eyebrow]="i18n.t('projectCosts')" [title]="i18n.t('costTitle')">
       <app-empty-state [title]="i18n.t('noRecords')" />
@@ -31,7 +35,7 @@
     <!-- One card per project, rather than every project stacked in a single
          card: each is a separate record and reads as one. -->
     <div class="grid cost-grid">
-      @for (line of store.projectCosts(); track line.project) {
+      @for (line of store.projectCosts(); track line.projectId) {
         <app-section-card [eyebrow]="i18n.t('projectCosts')" [title]="i18n.text(line.project)">
           <div class="cost-body">
             <p class="cost-total text-numeric">
@@ -63,6 +67,62 @@
                 [valueLabel]="i18n.formatMoney(line.extras)"
               />
             </div>
+
+            <!--
+              The entries the three figures above are summed from. Showing the
+              total and its own workings on one card is the point: a spend
+              figure can no longer be a number somebody typed.
+            -->
+            <section class="entries">
+              <header class="entries-head">
+                <h3>{{ i18n.t('costEntries') }}</h3>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="busy.any"
+                  [attr.aria-busy]="busy.is('add:' + line.projectId)"
+                  (click)="add(line)"
+                >
+                  <app-busy-icon [busy]="busy.is('add:' + line.projectId)">
+                    <svg lucidePlus size="16" aria-hidden="true"></svg>
+                  </app-busy-icon>
+                  <span>{{ i18n.t('addCostEntry') }}</span>
+                </button>
+              </header>
+
+              @if (!entriesFor(line).length) {
+                <p class="cost-empty">{{ i18n.t('noCostEntries') }}</p>
+              } @else {
+                <ul class="entry-list">
+                  @for (entry of entriesFor(line); track entry.id) {
+                    <li class="entry-row">
+                      <div class="entry-main">
+                        <strong>{{ i18n.text(entry.category) }}</strong>
+                        <span class="muted">
+                          {{ entry.description || '—' }} ·
+                          {{ i18n.formatIsoDate(entry.incurredOn) }}
+                        </span>
+                      </div>
+                      <span class="entry-amount text-numeric">
+                        {{ i18n.formatMoney(entry.amount) }}
+                      </span>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [disabled]="busy.any"
+                        [attr.aria-label]="i18n.t('deleteEntry')"
+                        [attr.aria-busy]="busy.is('delete:' + entry.id)"
+                        (click)="remove(entry)"
+                      >
+                        <app-busy-icon [busy]="busy.is('delete:' + entry.id)">
+                          <svg lucideTrash2 size="16" aria-hidden="true"></svg>
+                        </app-busy-icon>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
 
             <app-meter-bar
               class="cost-progress"

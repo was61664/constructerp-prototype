@@ -6,6 +6,7 @@ import { provideRouter } from '@angular/router';
 import { App } from './app';
 import { routes } from './app.routes';
 import type {
+  CostEntryDto,
   EquipmentDto,
   ProjectDto,
   RentalDto,
@@ -129,6 +130,18 @@ function fakeMove(
   });
 }
 
+function fakeCost(id: string, category: CostEntryDto['category'], amount: number): CostEntryDto {
+  return {
+    id,
+    projectId: 'p1',
+    projectCode: 'PRJ-1001',
+    category,
+    amount,
+    incurredOn: '2026-07-01',
+    description: { en: 'Crane hire', ar: 'إيجار ونش' },
+  };
+}
+
 class FakeGateway {
   hasApi = true;
 
@@ -145,9 +158,10 @@ class FakeGateway {
       progress: 76,
       startDate: null,
       endDate: null,
-      equipmentSpend: 1,
-      transportSpend: 2,
-      extraSpend: 3,
+      // Placeholders: overwritten by resum() on every read.
+      equipmentSpend: 0,
+      transportSpend: 0,
+      extraSpend: 0,
       equipmentCount: 1,
     },
   ];
@@ -172,7 +186,13 @@ class FakeGateway {
 
   lastSaved: SaveEquipmentRequest | null = null;
 
-  getProjects = () => Promise.resolve(this.projects);
+  getProjects = () => {
+    // Summed at read time, which is what the API does. Holding a separate
+    // hardcoded total here would let a test assert a figure no entry supports.
+    this.resum();
+
+    return Promise.resolve(this.projects);
+  };
 
   getEquipment = () => Promise.resolve(this.equipment);
 
@@ -209,6 +229,61 @@ class FakeGateway {
   requests: RequestDto[] = [];
 
   getRequests = () => Promise.resolve(this.requests);
+
+  /**
+   * Cost entries, and project spend summed from them.
+   *
+   * The fake sums on every read exactly as the API does, so a test cannot pass
+   * by asserting a total that no entry supports.
+   */
+  costs: CostEntryDto[] = [fakeCost('c1', 'Equipment', 1000), fakeCost('c2', 'Transport', 250.125)];
+
+  getCostEntries = () => Promise.resolve(this.costs);
+
+  createCostEntry = (request: {
+    projectId: string;
+    category: CostEntryDto['category'];
+    amount: number;
+    incurredOn: string;
+    description: { en: string; ar: string | null } | null;
+  }) => {
+    const created: CostEntryDto = {
+      id: `c${this.costs.length + 1}`,
+      projectId: request.projectId,
+      projectCode: 'PRJ-1001',
+      category: request.category,
+      amount: request.amount,
+      incurredOn: request.incurredOn,
+      description: request.description ?? { en: '', ar: null },
+    };
+
+    this.costs = [created, ...this.costs];
+    this.resum();
+
+    return Promise.resolve(created);
+  };
+
+  deleteCostEntry = (id: string) => {
+    this.costs = this.costs.filter((entry) => entry.id !== id);
+    this.resum();
+
+    return Promise.resolve();
+  };
+
+  /** What the API does server-side: totals are a projection of the entries. */
+  private resum(): void {
+    const sum = (category: CostEntryDto['category']) =>
+      this.costs
+        .filter((entry) => entry.category === category)
+        .reduce((total, entry) => total + entry.amount, 0);
+
+    this.projects = this.projects.map((project) => ({
+      ...project,
+      equipmentSpend: sum('Equipment'),
+      transportSpend: sum('Transport'),
+      extraSpend: sum('Extras'),
+    }));
+  }
 
   /**
    * Rentals carry dates only, exactly as the API does. The status on each row
@@ -634,6 +709,73 @@ describe('Rentals', () => {
     TestBed.inject(I18nService).toggleLanguage();
 
     expect(store.rentals()[0].vendor).toBe('دلتا لتأجير المعدات الثقيلة');
+  });
+});
+
+describe('Costs', () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    TestBed.configureTestingModule({
+      providers: [{ provide: ErpGateway, useValue: new FakeGateway() }],
+    });
+
+    await TestBed.inject(ErpStore).load();
+  });
+
+  afterEach(() => localStorage.clear());
+
+  it('should show a project total that equals its own entries', () => {
+    const store = TestBed.inject(ErpStore);
+    const line = store.projectCosts()[0];
+    const entries = store.costEntriesForProject(line.projectId);
+
+    // The figure and its workings are both on screen, and they agree because
+    // the API sums one from the other rather than storing both.
+    expect(line.equipment).toBe(
+      entries.filter((e) => e.category === 'Equipment').reduce((sum, e) => sum + e.amount, 0),
+    );
+    expect(line.transport).toBe(
+      entries.filter((e) => e.category === 'Transport').reduce((sum, e) => sum + e.amount, 0),
+    );
+  });
+
+  it('should move the project total when an entry is added', async () => {
+    const store = TestBed.inject(ErpStore);
+    const before = store.projectCosts()[0].extras;
+
+    await store.createCostEntry({
+      projectId: store.projectCosts()[0].projectId,
+      category: 'Extras',
+      amount: 1250.375,
+      incurredOn: '2026-08-01',
+      description: 'Standby charges',
+    });
+
+    // Three decimals survive: KWD has 1000 fils to the dinar.
+    expect(store.projectCosts()[0].extras).toBe(before + 1250.375);
+    expect(store.costEntries().some((e) => e.amount === 1250.375)).toBeTrue();
+  });
+
+  it('should move the total back when an entry is removed', async () => {
+    const store = TestBed.inject(ErpStore);
+    const line = store.projectCosts()[0];
+    const entry = store.costEntriesForProject(line.projectId)[0];
+    const before = line.equipment;
+
+    await store.deleteCostEntry(entry.id);
+
+    expect(store.projectCosts()[0].equipment).toBe(before - entry.amount);
+    expect(store.costEntries().some((e) => e.id === entry.id)).toBeFalse();
+  });
+
+  it('should localise an entry description without refetching', () => {
+    const store = TestBed.inject(ErpStore);
+
+    expect(store.costEntries()[0].description).toBe('Crane hire');
+
+    TestBed.inject(I18nService).toggleLanguage();
+
+    expect(store.costEntries()[0].description).toBe('إيجار ونش');
   });
 });
 

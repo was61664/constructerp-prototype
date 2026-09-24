@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 
 import type {
+  CostEntryDto,
   EquipmentDto,
   EquipmentTypeDto,
   LocalizedTextDto,
@@ -8,6 +9,7 @@ import type {
   RentalDto,
   RequestDto,
   SaveEquipmentRequest,
+  SaveCostEntryRequest,
   SaveProjectRequest,
   SaveRequestRequest,
   TransportMoveDto,
@@ -23,6 +25,7 @@ import {
   SEED_VENDORS,
 } from '../data/mock-data';
 import type {
+  CostEntry,
   Equipment,
   EquipmentRequest,
   EquipmentTypeOption,
@@ -59,6 +62,7 @@ export class ErpStore {
   private readonly equipmentDtos = signal<EquipmentDto[]>([...SEED_EQUIPMENT]);
   private readonly equipmentTypeDtos = signal<EquipmentTypeDto[]>([]);
   private readonly requestDtos = signal<RequestDto[]>([]);
+  private readonly costEntryDtos = signal<CostEntryDto[]>([]);
   private readonly rentalDtos = signal<RentalDto[]>([...SEED_RENTALS]);
   private readonly vendorDtos = signal<VendorDto[]>([...SEED_VENDORS]);
   private readonly transportDtos = signal<TransportMoveDto[]>([...SEED_TRANSPORT]);
@@ -144,6 +148,25 @@ export class ErpStore {
           passed: check.passed,
         })),
       availableActions: dto.availableActions,
+    })),
+  );
+
+  /**
+   * The individual rows behind each project's spend totals.
+   *
+   * The totals on a project are summed from exactly these by the API, so the
+   * Costs screen can show a figure and the records that produce it side by
+   * side — and they cannot disagree.
+   */
+  readonly costEntries = computed<CostEntry[]>(() =>
+    this.costEntryDtos().map((dto) => ({
+      id: dto.id,
+      projectId: dto.projectId,
+      projectCode: dto.projectCode,
+      category: dto.category,
+      amount: dto.amount,
+      incurredOn: dto.incurredOn,
+      description: this.pick(dto.description),
     })),
   );
 
@@ -258,6 +281,7 @@ export class ErpStore {
 
   readonly projectCosts = computed<ProjectCostLine[]>(() =>
     this.projects().map((project) => ({
+      projectId: project.id,
       project: project.name,
       equipment: project.equipmentSpend,
       transport: project.transportSpend,
@@ -300,8 +324,8 @@ export class ErpStore {
     this.loadErrorSignal.set(null);
 
     try {
-      const [projects, equipment, types, requests, rentals, vendors, transport] = await Promise.all(
-        [
+      const [projects, equipment, types, requests, rentals, vendors, transport, costs] =
+        await Promise.all([
           this.gateway.getProjects(),
           this.gateway.getEquipment(),
           this.gateway.getEquipmentTypes(),
@@ -309,8 +333,8 @@ export class ErpStore {
           this.gateway.getRentals(),
           this.gateway.getVendors(),
           this.gateway.getTransportMoves(),
-        ],
-      );
+          this.gateway.getCostEntries(),
+        ]);
 
       this.projectDtos.set(projects);
       this.equipmentDtos.set(equipment);
@@ -319,6 +343,7 @@ export class ErpStore {
       this.rentalDtos.set(rentals);
       this.vendorDtos.set(vendors);
       this.transportDtos.set(transport);
+      this.costEntryDtos.set(costs);
 
       if (!this.selectedEquipmentIdSignal() && equipment.length) {
         this.selectedEquipmentIdSignal.set(equipment[0].id);
@@ -461,6 +486,44 @@ export class ErpStore {
         ? requests.map((item) => (item.id === request.id ? request : item))
         : [request, ...requests],
     );
+  }
+
+  // --- Costs ----------------------------------------------------------------
+
+  /** Entries for one project, newest first. */
+  costEntriesForProject(projectId: string): CostEntry[] {
+    return this.costEntries().filter((entry) => entry.projectId === projectId);
+  }
+
+  /**
+   * Adding or removing an entry moves the project total it feeds.
+   *
+   * The project is refetched rather than adjusted locally: the API is what
+   * sums these, and recomputing the total here would be a second answer to the
+   * same question.
+   */
+  async createCostEntry(entry: Omit<CostEntry, 'id' | 'projectCode'>): Promise<void> {
+    const created = await this.gateway.createCostEntry(this.toCostRequest(entry));
+
+    this.costEntryDtos.update((entries) => [created, ...entries]);
+    this.projectDtos.set(await this.gateway.getProjects());
+  }
+
+  async deleteCostEntry(id: string): Promise<void> {
+    await this.gateway.deleteCostEntry(id);
+
+    this.costEntryDtos.update((entries) => entries.filter((entry) => entry.id !== id));
+    this.projectDtos.set(await this.gateway.getProjects());
+  }
+
+  private toCostRequest(entry: Omit<CostEntry, 'id' | 'projectCode'>): SaveCostEntryRequest {
+    return {
+      projectId: entry.projectId,
+      category: entry.category,
+      amount: entry.amount,
+      incurredOn: entry.incurredOn,
+      description: this.toLocalized(entry.description, undefined),
+    };
   }
 
   // --- Rentals --------------------------------------------------------------

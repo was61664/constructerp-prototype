@@ -1,5 +1,5 @@
 import type { EquipmentStatus, Ownership } from '../models/equipment';
-import type { ProjectStatus } from '../models/project';
+import type { CostCategory, ProjectStatus } from '../models/project';
 import type { RentalStatus } from '../models/rental';
 import type { TransportAction, TransportKind, TransportStatus } from '../models/transport-move';
 import type { RequestStage, RequestStatus } from '../models/equipment-request';
@@ -241,4 +241,22 @@ export interface SaveTransportMoveRequest {
   scheduledFor: string;
   cost: number;
   notes: LocalizedTextDto | null;
+}
+
+export interface CostEntryDto {
+  id: string;
+  projectId: string;
+  projectCode: string;
+  category: CostCategory;
+  amount: number;
+  incurredOn: string;
+  description: LocalizedTextDto;
+}
+
+export interface SaveCostEntryRequest {
+  projectId: string;
+  category: CostCategory;
+  amount: number;
+  incurredOn: string;
+  description: LocalizedTextDto | null;
 }

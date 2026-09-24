@@ -48,9 +48,8 @@ export class ProjectFormDialog {
     location: [this.data.project.location],
     status: [this.data.project.status],
     budget: [this.data.project.budget, [Validators.required, Validators.min(0)]],
-    equipmentSpend: [this.data.project.equipmentSpend, Validators.min(0)],
-    transportSpend: [this.data.project.transportSpend, Validators.min(0)],
-    extraSpend: [this.data.project.extraSpend, Validators.min(0)],
+    // No spend controls: the API sums those from cost entries and refuses them
+    // on a project save, so collecting them here only looked like it worked.
     progress: [this.data.project.progress, [Validators.min(0), Validators.max(100)]],
   });
 

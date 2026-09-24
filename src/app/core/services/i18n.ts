@@ -186,7 +186,6 @@ export class I18nService {
     }).format(parsed);
   }
 
-
   private localizeDigits(value: string): string {
     if (!this.isArabic()) {
       return value;
