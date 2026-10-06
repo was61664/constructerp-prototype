@@ -243,6 +243,7 @@ export interface SaveTransportMoveRequest {
   notes: LocalizedTextDto | null;
 }
 
+
 export interface CostEntryDto {
   id: string;
   projectId: string;
